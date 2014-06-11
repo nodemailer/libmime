@@ -1,0 +1,32 @@
+{
+  "name": "libmime",
+  "description": "Encode and decode quoted printable and base64 strings",
+  "version": "0.1.0",
+  "main": "src/libmime",
+  "homepage": "https://github.com/andris9/libmime",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/andris9/libmime.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "MIME",
+    "Base64",
+    "Quoted-Printable"
+  ],
+  "author": "Andris Reinman <andris@kreata.ee>",
+  "scripts": {
+    "test": "grunt"
+  },
+  "dependencies": {
+    "iconv-lite": "^0.4.0"
+  },
+  "devDependencies": {
+    "chai": "~1.8.1",
+    "grunt": "~0.4.1",
+    "grunt-mocha-phantomjs": "~0.4.0",
+    "grunt-contrib-connect": "~0.6.0",
+    "grunt-contrib-jshint": "~0.8.0",
+    "grunt-mocha-test": "~0.10.0"
+  }
+}
