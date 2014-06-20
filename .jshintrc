@@ -9,6 +9,7 @@
     "esnext": true,
     "curly": true,
     "eqeqeq": true,
+    "expr": true,
 
     "predef": [
         "describe",

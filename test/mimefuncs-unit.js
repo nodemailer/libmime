@@ -11,16 +11,27 @@ describe('libmime', function() {
 
     describe('#isPlainText', function() {
         it('should detect plain text', function() {
-            expect(libmime.isPlainText('abc')).to.equal(true);
-            expect(libmime.isPlainText('abc\x02')).to.equal(false);
-            expect(libmime.isPlainText('abcõ')).to.equal(false);
+            expect(libmime.isPlainText('abc')).to.be.true;
+            expect(libmime.isPlainText('abc\x02')).to.be.false;
+            expect(libmime.isPlainText('abcõ')).to.be.false;
+        });
+        it('should return true', function() {
+            expect(libmime.isPlainText('az09\t\r\n~!?')).to.be.true;
+        });
+
+        it('should return false on low bits', function() {
+            expect(libmime.isPlainText('az09\n\x08!?')).to.be.false;
+        });
+
+        it('should return false on high bits', function() {
+            expect(libmime.isPlainText('az09\nõ!?')).to.be.false;
         });
     });
 
     describe('#hasLongerLines', function() {
         it('should detect longer lines', function() {
-            expect(libmime.hasLongerLines('abc\ndef', 5)).to.equal(false);
-            expect(libmime.hasLongerLines('juf\nabcdef\nghi', 5)).to.equal(true);
+            expect(libmime.hasLongerLines('abc\ndef', 5)).to.be.false;
+            expect(libmime.hasLongerLines('juf\nabcdef\nghi', 5)).to.be.true;
         });
     });
 
