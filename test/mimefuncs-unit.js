@@ -348,7 +348,7 @@ describe('libmime', function() {
     });
 
     describe('mimetypes', function() {
-        describe('#detectMimeType', function() {
+        describe('#detectExtension', function() {
             it('should find exact match', function() {
                 var extension = 'doc',
                     contentType = 'application/msword';
@@ -362,9 +362,20 @@ describe('libmime', function() {
 
                 expect(libmime.detectExtension(contentType)).to.equal(extension);
             });
+
+            it('should find default match', function() {
+                var extension = 'bin',
+                    contentType = 'sugri/mugri';
+
+                expect(libmime.detectExtension(contentType)).to.equal(extension);
+
+                contentType = 'application/octet-stream';
+
+                expect(libmime.detectExtension(contentType)).to.equal(extension);
+            });
         });
 
-        describe('#detectExtension', function() {
+        describe('#detectMimeType', function() {
             it('should find exact match', function() {
                 var extension = 'doc',
                     contentType = 'application/msword';

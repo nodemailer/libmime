@@ -3,7 +3,6 @@
 module.exports = {
     list: {
         'application/acad': 'dwg',
-        'application/andrew-inset': '',
         'application/applixware': 'aw',
         'application/arj': 'arj',
         'application/atom+xml': 'xml',
@@ -91,7 +90,7 @@ module.exports = {
         'application/onenote': 'onetoc',
         'application/patch-ops-error+xml': 'xer',
         'application/pdf': 'pdf',
-        'application/pgp-encrypted': '',
+        'application/pgp-encrypted': 'asc',
         'application/pgp-signature': 'pgp',
         'application/pics-rules': 'prf',
         'application/pkcs-12': 'p12',
@@ -998,7 +997,6 @@ module.exports = {
     },
 
     extensions: {
-        '': ['application/andrew-inset', 'application/pgp-encrypted'],
         '*': 'application/octet-stream',
         '123': 'application/vnd.lotus-1-2-3',
         '323': 'text/h323',
