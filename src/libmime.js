@@ -286,14 +286,14 @@ var libmime = module.exports = {
             var value = structured.params[param];
             if (param === 'filename' || !libmime.isPlainText(value) || value.length >= 75) {
                 libmime.buildHeaderParam(param, value, 50).forEach(function(encodedParam) {
-                    if (encodedParam.key === param) {
+                    if (encodedParam.key === param && !/[\s'"\\;\/=]|^\-/.test(encodedParam.value)) {
                         paramsArray.push(encodedParam.key + '=' + encodedParam.value);
                     } else {
                         paramsArray.push(encodedParam.key + '="' + encodedParam.value + '"');
                     }
                 });
             } else {
-                if (value.match(/[\s'"\\;\/=]|^\-/g)) {
+                if (/[\s'"\\;\/=]|^\-/.test(value)) {
                     paramsArray.push(param + '="' + value.replace(/(["\\])/g, "\\$1") + '"');
                 } else {
                     paramsArray.push(param + '=' + value);
