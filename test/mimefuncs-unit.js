@@ -270,6 +270,15 @@ describe('libmime', function() {
                 }
             })).to.equal('test; a=b; filename*0*="utf-8\'\'J%C3%B5ge-va%C5%BDJ%C3%B5ge-va%C5%BDJ"; filename*1*="%C3%B5ge-va%C5%BD.pdf"');
         });
+
+        it('should quote filename with spaces', function() {
+            expect(libmime.buildHeaderValue({
+                value: 'test',
+                params: {
+                    filename: 'document a.pdf'
+                }
+            })).to.equal('test; filename="document a.pdf"');
+        });
     });
 
     describe('#encodeFlowed', function() {
