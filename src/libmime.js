@@ -596,7 +596,7 @@ var libmime = module.exports = {
         }
 
         // use the first one
-        return mimetypes.list[mimeType][0];
+        return mimetypes.list[mimeType][0] !== '*' ? mimetypes.list[mimeType][0] : 'bin';
     },
 
     /**
