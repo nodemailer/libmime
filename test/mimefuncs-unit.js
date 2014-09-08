@@ -370,6 +370,7 @@ describe('libmime', function() {
                     contentType = 'image/jpeg';
 
                 expect(libmime.detectExtension(contentType)).to.equal(extension);
+                expect(libmime.detectExtension('text/plain')).to.equal('txt');
             });
 
             it('should find default match', function() {
