@@ -196,7 +196,7 @@ var libmime = module.exports = {
         var decodedValue = libcharset.decode(libcharset.convert((data || ''), fromCharset)),
             encodedValue;
 
-        encodedValue = decodedValue.replace(/([^\s\u0080-\uFFFF]*[\u0080-\uFFFF]+[^\s\u0080-\uFFFF]*(?:\s+[^\s\u0080-\uFFFF]*[\u0080-\uFFFF]+[^\s\u0080-\uFFFF]*\s*)?)+/g, function(match) {
+        encodedValue = decodedValue.replace(/([^\s\u0080-\uFFFF]*[\u0080-\uFFFF]+[^\s\u0080-\uFFFF]*(?:\s+[^\s\u0080-\uFFFF]*[\u0080-\uFFFF]+[^\s\u0080-\uFFFF]*\s*)?)+(?=\s|$)/g, function(match) {
             return match.length ? libmime.encodeWord(match, mimeWordEncoding || 'Q', maxLength) : '';
         });
 
