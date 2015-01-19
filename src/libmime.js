@@ -469,7 +469,7 @@ var libmime = module.exports = {
         maxLength = maxLength || 50;
 
         // process ascii only text
-        if (/^[\w.\- ]*$/.test(data)) {
+        if (/^[\w.\-+ ]*$/.test(data)) {
 
             // check if conversion is even needed
             if (encodedStr.length <= maxLength) {
