@@ -48,23 +48,23 @@ var libmime = module.exports = {
 
         return str.
         split(/\r?\n/).
-        // remove soft linebreaks
-        // soft linebreaks are added after space symbols
+            // remove soft linebreaks
+            // soft linebreaks are added after space symbols
         reduce(function(previousValue, currentValue, index) {
-            var body = previousValue;
-            if (delSp) {
-                // delsp adds spaces to text to be able to fold it
-                // these spaces can be removed once the text is unfolded
-                body = body.replace(/[ ]+$/, '');
-            }
-            if (/ $/.test(previousValue) && !/(^|\n)\-\- $/.test(previousValue) || index === 1) {
-                return body + currentValue;
-            } else {
-                return body + '\n' + currentValue;
-            }
-        }).
-        // remove whitespace stuffing
-        // http://tools.ietf.org/html/rfc3676#section-4.4
+                var body = previousValue;
+                if (delSp) {
+                    // delsp adds spaces to text to be able to fold it
+                    // these spaces can be removed once the text is unfolded
+                    body = body.replace(/[ ]+$/, '');
+                }
+                if (/ $/.test(previousValue) && !/(^|\n)\-\- $/.test(previousValue) || index === 1) {
+                    return body + currentValue;
+                } else {
+                    return body + '\n' + currentValue;
+                }
+            }).
+            // remove whitespace stuffing
+            // http://tools.ietf.org/html/rfc3676#section-4.4
         replace(/^ /gm, '');
     },
 
@@ -284,17 +284,17 @@ var libmime = module.exports = {
         Object.keys(structured.params || {}).forEach(function(param) {
             // filename might include unicode characters so it is a special case
             var value = structured.params[param];
-            if (param === 'filename' || !libmime.isPlainText(value) || value.length >= 75) {
+            if (!libmime.isPlainText(value) || value.length >= 75) {
                 libmime.buildHeaderParam(param, value, 50).forEach(function(encodedParam) {
                     if (!/[\s"\\;\/=]|^[\-']|'$/.test(encodedParam.value)) {
                         paramsArray.push(encodedParam.key + '=' + encodedParam.value);
                     } else {
-                        paramsArray.push(encodedParam.key + '="' + encodedParam.value + '"');
+                        paramsArray.push(encodedParam.key + '=' + JSON.stringify(encodedParam.value));
                     }
                 });
             } else {
                 if (/[\s'"\\;\/=]|^\-/.test(value)) {
-                    paramsArray.push(param + '="' + value.replace(/(["\\])/g, "\\$1") + '"');
+                    paramsArray.push(param + '=' + JSON.stringify(value));
                 } else {
                     paramsArray.push(param + '=' + value);
                 }
@@ -422,16 +422,16 @@ var libmime = module.exports = {
                         response.params[key].charset +
                         '?Q?' +
                         value.
-                    // fix invalidly encoded chars
+                        // fix invalidly encoded chars
                     replace(/[=\?_\s]/g, function(s) {
-                        var c = s.charCodeAt(0).toString(16);
-                        if (s === ' ') {
-                            return '_';
-                        } else {
-                            return '%' + (c.length < 2 ? '0' : '') + c;
-                        }
-                    }).
-                    // change from urlencoding to percent encoding
+                            var c = s.charCodeAt(0).toString(16);
+                            if (s === ' ') {
+                                return '_';
+                            } else {
+                                return '%' + (c.length < 2 ? '0' : '') + c;
+                            }
+                        }).
+                        // change from urlencoding to percent encoding
                     replace(/%/g, '=') +
                         '?=';
                 } else {
@@ -450,8 +450,8 @@ var libmime = module.exports = {
      * For example
      *      title="unicode string"
      * becomes
-     *     title*0*="utf-8''unicode"
-     *     title*1*="%20string"
+     *     title*0*=utf-8''unicode
+     *     title*1*=%20string
      *
      * @param {String|Buffer} data String to be encoded
      * @param {Number} [maxLength=50] Max length for generated chunks
@@ -469,7 +469,7 @@ var libmime = module.exports = {
         maxLength = maxLength || 50;
 
         // process ascii only text
-        if (/^[\w.\- ]*$/.test(data)) {
+        if (libmime.isPlainText(data)) {
 
             // check if conversion is even needed
             if (encodedStr.length <= maxLength) {

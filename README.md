@@ -189,8 +189,8 @@ libmime.buildHeaderParam('filename', 'filename õäöü.txt', 20);
 This can be combined into a properly formatted header:
 
 ```
-Content-disposition: attachment; filename*0*="utf-8''filename%20"
-  filename*1*="%C3%B5%C3%A4%C3%B6"; filename*2*="%C3%BC.txt"
+Content-disposition: attachment; filename*0*=utf-8''filename%20
+  filename*1*=%C3%B5%C3%A4%C3%B6; filename*2*=%C3%BC.txt
 ```
 
 ### MIME Types
