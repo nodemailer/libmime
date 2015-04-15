@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.0 2015-04-15
+
+Changed versioning scheme to use 1.x instead of 0.x versions. Bumped dependency versions, no actual code changes.
+
 ## v0.1.7 2015-01-19
 
 Updated unicode filename handling – only revert to parameter continuation if the value actually includes

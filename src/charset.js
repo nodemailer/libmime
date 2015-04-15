@@ -29,7 +29,7 @@ var charset = module.exports = {
     decode: function(buf, fromCharset) {
         fromCharset = charset.normalizeCharset(fromCharset || 'UTF-8');
 
-        if(/^(us\-)?ascii|utf\-8|7bit$/i.test(fromCharset)){
+        if (/^(us\-)?ascii|utf\-8|7bit$/i.test(fromCharset)) {
             return buf.toString('utf-8');
         }
 
