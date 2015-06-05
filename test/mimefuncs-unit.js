@@ -130,6 +130,13 @@ describe('libmime', function() {
             }]).to.deep.equal(libmime.buildHeaderParam('title', 'this is just a title', 5));
         });
 
+        it('should encode double byte unicode characters', function() {
+          expect([{
+            key: 'title*0*',
+            value: 'utf-8\'\'Unicode%20title%20%F0%9F%98%8A'
+          }]).to.deep.equal(libmime.buildHeaderParam('title', 'Unicode title 😊', 50));
+        });
+
         it('should encode and split unicode', function() {
             expect([{
                 key: 'title*0*',
