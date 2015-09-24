@@ -5,7 +5,7 @@ var charset = require('../src/charset');
 
 var chai = require('chai');
 var expect = chai.expect;
-chai.Assertion.includeStack = true;
+chai.config.includeStack = true;
 
 describe('libmime', function() {
 

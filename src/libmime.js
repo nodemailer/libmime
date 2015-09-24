@@ -110,6 +110,7 @@ var libmime = module.exports = {
         }
 
         if (mimeWordEncoding === 'Q') {
+            // https://tools.ietf.org/html/rfc2047#section-5 rule (3)
             encodedStr = libqp.encode(data).replace(/[^a-z0-9!*+\-\/=]/ig, function(chr) {
                 var ord = chr.charCodeAt(0).toString(16).toUpperCase();
                 if (chr === ' ') {
