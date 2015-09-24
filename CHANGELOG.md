@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.0 2015-09-24
+
+Updated encoded word encoding with quoted printable, should be more like required in https://tools.ietf.org/html/rfc2047#section-5
+
 ## v1.0.0 2015-04-15
 
 Changed versioning scheme to use 1.x instead of 0.x versions. Bumped dependency versions, no actual code changes.

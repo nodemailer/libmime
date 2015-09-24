@@ -110,10 +110,14 @@ var libmime = module.exports = {
         }
 
         if (mimeWordEncoding === 'Q') {
-            encodedStr = libqp.encode(data).replace(/[_?\r\n\t"]/g, function(chr) {
+            encodedStr = libqp.encode(data).replace(/[^a-z0-9!*+\-\/=]/ig, function(chr) {
                 var ord = chr.charCodeAt(0).toString(16).toUpperCase();
-                return '=' + (ord.length === 1 ? '0' + ord : ord);
-            }).replace(/%20| /g, '_');
+                if (chr === ' ') {
+                    return '_';
+                } else {
+                    return '=' + (ord.length === 1 ? '0' + ord : ord);
+                }
+            });
         } else if (mimeWordEncoding === 'B') {
             encodedStr = typeof data === 'string' ? data : libbase64.encode(data);
             maxLength = Math.max(3, (maxLength - maxLength % 4) / 4 * 3);

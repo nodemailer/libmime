@@ -47,7 +47,7 @@ describe('libmime', function() {
                 input2 = 'метель\'вьюга',
                 input3 = 'Verão você vai adorar!',
                 output1 = '=?UTF-8?Q?=D0=BC=D0=B5=D1=82=D0=B5=D0=BB=D1=8C=22_?= =?UTF-8?Q?=D0=B2=D1=8C=D1=8E=D0=B3=D0=B0?=',
-                output2 = '=?UTF-8?Q?=D0=BC=D0=B5=D1=82=D0=B5=D0=BB=D1=8C\'?= =?UTF-8?Q?=D0=B2=D1=8C=D1=8E=D0=B3=D0=B0?=',
+                output2 = '=?UTF-8?Q?=D0=BC=D0=B5=D1=82=D0=B5=D0=BB=D1=8C=27?= =?UTF-8?Q?=D0=B2=D1=8C=D1=8E=D0=B3=D0=B0?=',
                 output3 = '=?UTF-8?Q?Ver=C3=A3o_voc=C3=AA?= vai adorar!';
 
             expect(libmime.encodeWords(input1, 'Q', 52)).to.equal(output1);
