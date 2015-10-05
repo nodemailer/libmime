@@ -1,7 +1,7 @@
 {
   "name": "libmime",
   "description": "Encode and decode quoted printable and base64 strings",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "main": "src/libmime",
   "homepage": "https://github.com/andris9/libmime",
   "repository": {

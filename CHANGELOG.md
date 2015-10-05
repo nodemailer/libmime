@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.0 2015-10-05
+
+Added support for emojis in header params (eg. filenames)
+
 ## v1.1.0 2015-09-24
 
 Updated encoded word encoding with quoted printable, should be more like required in https://tools.ietf.org/html/rfc2047#section-5
