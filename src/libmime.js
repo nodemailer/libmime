@@ -466,10 +466,12 @@ var libmime = module.exports = {
     buildHeaderParam: function(key, data, maxLength, fromCharset) {
         var list = [];
         var encodedStr = typeof data === 'string' ? data : libmime.decode(data, fromCharset);
-        var chr;
+        var encodedStrArr;
+        var chr, ord;
         var line;
         var startPos = 0;
         var isEncoded = false;
+        var i, len;
 
         maxLength = maxLength || 50;
 
@@ -499,21 +501,39 @@ var libmime = module.exports = {
 
         } else {
 
+            if (/[\uD800-\uDBFF]/.test(encodedStr)) {
+                // string containts surrogate pairs, so normalize it to an array of bytes
+                encodedStrArr = [];
+                for (i = 0, len = encodedStr.length; i < len; i++) {
+                    chr = encodedStr.charAt(i);
+                    ord = chr.charCodeAt(0);
+                    if (ord >= 0xD800 && ord <= 0xDBFF && i < len - 1) {
+                        chr += encodedStr.charAt(i + 1);
+                        encodedStrArr.push(chr);
+                        i++;
+                    } else {
+                        encodedStrArr.push(chr);
+                    }
+                }
+                encodedStr = encodedStrArr;
+            }
+
             // first line includes the charset and language info and needs to be encoded
             // even if it does not contain any unicode characters
             line = 'utf-8\'\'';
             isEncoded = true;
             startPos = 0;
+
             // process text with unicode or special chars
-            for (var i = 0, len = encodedStr.length; i < len; i++) {
+            for (i = 0, len = encodedStr.length; i < len; i++) {
 
                 chr = encodedStr[i];
 
                 if (isEncoded) {
-                    chr = encodeURIComponent(chr);
+                    chr = safeEncodeURIComponent(chr);
                 } else {
                     // try to urlencode current char
-                    chr = chr === ' ' ? chr : encodeURIComponent(chr);
+                    chr = chr === ' ' ? chr : safeEncodeURIComponent(chr);
                     // By default it is not required to encode a line, the need
                     // only appears when the string contains unicode or special chars
                     // in this case we start processing the line over and encode all chars
@@ -521,7 +541,7 @@ var libmime = module.exports = {
                         // Check if it is even possible to add the encoded char to the line
                         // If not, there is no reason to use this line, just push it to the list
                         // and start a new line with the char that needs encoding
-                        if ((encodeURIComponent(line) + chr).length >= maxLength) {
+                        if ((safeEncodeURIComponent(line) + chr).length >= maxLength) {
                             list.push({
                                 line: line,
                                 encoded: isEncoded
@@ -543,7 +563,7 @@ var libmime = module.exports = {
                         line: line,
                         encoded: isEncoded
                     });
-                    line = chr = encodedStr[i] === ' ' ? ' ' : encodeURIComponent(encodedStr[i]);
+                    line = chr = encodedStr[i] === ' ' ? ' ' : safeEncodeURIComponent(encodedStr[i]);
                     if (chr === encodedStr[i]) {
                         isEncoded = false;
                         startPos = i - 1;
@@ -573,6 +593,7 @@ var libmime = module.exports = {
             };
         });
     },
+
 
     /**
      * Returns file extension for a content type string. If no suitable extensions
@@ -725,4 +746,38 @@ function splitMimeEncodedString(str, maxlen) {
     }
 
     return lines;
+}
+
+function encodeURICharComponent(chr) {
+    var i, len, ord;
+    var res = '';
+
+    ord = chr.charCodeAt(0).toString(16).toUpperCase();
+    if (ord.length % 2) {
+        ord = '0' + ord;
+    }
+    if (ord.length > 2) {
+        for (i = 0, len = ord.length / 2; i < len; i++) {
+            res += '%' + ord.substr(i, 2);
+        }
+    } else {
+        res += '%' + ord;
+    }
+
+    return res;
+}
+
+function safeEncodeURIComponent(str) {
+    str = (str || '').toString();
+
+    try {
+        // might throw if we try to encode invalid sequences, eg. partial emoji
+        str = encodeURIComponent(str);
+    } catch (E) {
+        // should never run
+        return str.replace(/[^\x00-\x1F *'()<>@,;:\\"\[\]?=\u007F-\uFFFF]+/g, '');
+    }
+
+    // ensure chars that are not handled by encodeURICompent are converted as well
+    return str.replace(/[\x00-\x1F *'()<>@,;:\\"\[\]?=\u007F-\uFFFF]/g, encodeURICharComponent);
 }

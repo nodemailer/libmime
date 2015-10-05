@@ -264,7 +264,17 @@ describe('libmime', function() {
             })).to.equal('test; a=b; c=d');
         });
 
-        it('should split unicode filename', function() {
+        it('should handle unicode filename', function() {
+            expect(libmime.buildHeaderValue({
+                value: 'test',
+                params: {
+                    a: 'b',
+                    filename: '😁😂 *\'%()<>@,;:\\"[]?=😃😄zzz😊õäöü😓.pdf'
+                }
+            })).to.equal('test; a=b; filename*0*=utf-8\'\'%F0%9F%98%81%F0%9F%98%82%20%2A%27%25%28%29; filename*1*=%3C%3E%40%2C%3B%3A%5C%22%5B%5D%3F%3D%F0%9F%98%83; filename*2*=%F0%9F%98%84zzz%F0%9F%98%8A%C3%B5%C3%A4%C3%B6; filename*3*=%C3%BC%F0%9F%98%93.pdf');
+        });
+
+        it('should split emoji filename', function() {
             expect(libmime.buildHeaderValue({
                 value: 'test',
                 params: {

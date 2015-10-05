@@ -19,7 +19,7 @@
     "test": "grunt"
   },
   "dependencies": {
-    "iconv-lite": "^0.4.11",
+    "iconv-lite": "^0.4.13",
     "libbase64": "^0.1.0",
     "libqp": "^1.1.0"
   },
