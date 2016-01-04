@@ -1,5 +1,14 @@
 # Changelog
 
+## v2.0.0 2016-01-04
+
+  * Replaced jshint with eslint
+  * Refactored file structure
+
+## v1.2.1 2015-10-05
+
+Added support for emojis in header params (eg. filenames)
+
 ## v1.2.0 2015-10-05
 
 Added support for emojis in header params (eg. filenames)
