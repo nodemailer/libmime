@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.2 2016-02-11
+
+  * Fixed an issue with base64 mime words encoding
+
 ## v2.0.1 2016-02-11
 
   * Fix base64 mime-word encoding. Final string length was calculated invalidly
