@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.1 2016-02-11
+
+  * Fix base64 mime-word encoding. Final string length was calculated invalidly
+
 ## v2.0.0 2016-01-04
 
   * Replaced jshint with eslint

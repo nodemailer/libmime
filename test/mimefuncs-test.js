@@ -39,8 +39,12 @@ describe('libmime', function () {
     });
 
     describe('#encodeWord', function () {
-        it('should encode', function () {
+        it('should encode quoted-printable', function () {
             expect('=?UTF-8?Q?See_on_=C3=B5hin_test?=').to.equal(libmime.encodeWord('See on õhin test'));
+        });
+
+        it('should encode base64', function () {
+            expect('=?UTF-8?B?U2VlIG9uIMO1aGluIHRlc3Q=?=').to.equal(libmime.encodeWord('See on õhin test', 'B'));
         });
     });
 
@@ -96,9 +100,9 @@ describe('libmime', function () {
         });
 
         it('should split base64 on maxLength', function () {
-            var inputStr = 'Jõgeva Jõgeva Jõgeva mugeva Jõgeva Jõgeva Jõgeva Jõgeva Jõgeva',
-                outputStr = '=?UTF-8?B?SsO1Zw==?= =?UTF-8?B?ZXZh?= =?UTF-8?B?IErDtQ==?= =?UTF-8?B?Z2V2?= =?UTF-8?B?YSBK?= =?UTF-8?B?w7VnZQ==?= =?UTF-8?B?dmE=?= mugeva =?UTF-8?B?SsO1Zw==?= =?UTF-8?B?ZXZh?= =?UTF-8?B?IErDtQ==?= =?UTF-8?B?Z2V2?= =?UTF-8?B?YSBK?= =?UTF-8?B?w7VnZQ==?= =?UTF-8?B?dmEg?= =?UTF-8?B?SsO1Zw==?= =?UTF-8?B?ZXZh?= =?UTF-8?B?IErDtQ==?= =?UTF-8?B?Z2V2?= =?UTF-8?B?YQ==?=',
-                encoded = libmime.encodeWords(inputStr, 'B', 19);
+            var inputStr = 'õõõõõ õõõõõ õõõõõ mugeva õõõõõ õõõõõ õõõõõ õõõõõ Jõgeva',
+                outputStr = '=?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtQ==?= mugeva =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSBK?= =?UTF-8?B?w7VnZXZh?=',
+                encoded = libmime.encodeWords(inputStr, 'B', 30);
 
             expect(outputStr).to.equal(encoded);
             expect(inputStr).to.equal(libmime.decodeWords(encoded));
