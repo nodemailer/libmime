@@ -153,6 +153,16 @@ describe('libmime', function () {
             }]).to.deep.equal(libmime.buildHeaderParam('title', 'this is just a title õäöü', 20));
         });
 
+        it('should encode and split filename with dashes', function () {
+            expect([{
+                key: 'filename*0*',
+                value: 'utf-8\'\'%C6%94------%C6%94------%C6%94------%C6%94'
+            }, {
+                key: 'filename*1*',
+                value: '------%C6%94------%C6%94------%C6%94------.pdf'
+            }]).to.deep.equal(libmime.buildHeaderParam('filename', 'Ɣ------Ɣ------Ɣ------Ɣ------Ɣ------Ɣ------Ɣ------.pdf', 50));
+        });
+
         it('should encode and decode', function () {
             var input = 'Lorěm ipsum doloř siť amet, háš peřpetua compřéhenšam at, ei nám modó soleát éxpétěndá! Boňorum vocibůs dignisšim pro ad, ea sensibus efficiendi intellegam ius. Ad nam aperiam delicata voluptaria, vix nobis luptatum ea, ců úsú graeco viďiššě ňusqúam. ';
             var headerLine = 'content-disposition: attachment; ' + libmime.buildHeaderParam('filename', input, 50).map(function (item) {
@@ -279,6 +289,15 @@ describe('libmime', function () {
                     filename: '😁😂 *\'%()<>@,;:\\"[]?=😃😄zzz😊õäöü😓.pdf'
                 }
             })).to.equal('test; a=b; filename*0*=utf-8\'\'%F0%9F%98%81%F0%9F%98%82%20%2A%27%25%28%29; filename*1*=%3C%3E%40%2C%3B%3A%5C%22%5B%5D%3F%3D%F0%9F%98%83; filename*2*=%F0%9F%98%84zzz%F0%9F%98%8A%C3%B5%C3%A4%C3%B6; filename*3*=%C3%BC%F0%9F%98%93.pdf');
+        });
+
+        it('should handle dashed filename', function () {
+            expect(libmime.buildHeaderValue({
+                value: 'test',
+                params: {
+                    filename: 'Ɣ------Ɣ------Ɣ------Ɣ------Ɣ------Ɣ------Ɣ------.pdf'
+                }
+            })).to.equal('test; filename*0*=utf-8\'\'%C6%94------%C6%94------%C6%94------%C6%94; filename*1*=------%C6%94------%C6%94------%C6%94------.pdf');
         });
 
         it('should split emoji filename', function () {

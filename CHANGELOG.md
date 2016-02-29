@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.0.3 2016-02-29
+
+  * Fixed an issue with rfc2231 filenames
+
 ## v2.0.2 2016-02-11
 
   * Fixed an issue with base64 mime words encoding
