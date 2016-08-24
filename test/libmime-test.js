@@ -88,6 +88,10 @@ describe('libmime', function () {
             expect(libmime.decodeWords(output2)).to.equal(input2);
         });
 
+        it('should join before parsing', function () {
+            expect('GLG: Regulation of Taxi in China - 张一兵').to.equal(libmime.decodeWords('=?utf-8?B?R0xHOiBSZWd1bGF0aW9uIG9mIFRheGkgaW4gQ2hpbmEgLSDl?= =?utf-8?B?vKDkuIDlhbU=?='));
+        });
+
         it('should split QP on maxLength', function () {
             var inputStr = 'Jõgeva Jõgeva Jõgeva mugeva Jõgeva Jõgeva Jõgeva Jõgeva Jõgeva',
                 outputStr = '=?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva?= mugeva ' +
@@ -135,6 +139,13 @@ describe('libmime', function () {
                 key: 'title*3',
                 value: 'title'
             }]).to.deep.equal(libmime.buildHeaderParam('title', 'this is just a title', 5));
+        });
+
+        it('should encode double byte unicode characters', function () {
+            expect([{
+                key: 'title*0*',
+                value: 'utf-8\'\'Unicode%20title%20%F0%9F%98%8A'
+            }]).to.deep.equal(libmime.buildHeaderParam('title', 'Unicode title 😊', 50));
         });
 
         it('should encode and split unicode', function () {

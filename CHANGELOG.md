@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.0 2016-07-24
+
+  * Changed handling of base64 encoded mime words where multiple words are joined together if possible. This fixes issues with multi byte characters getting split into different mime words (against the RFC but occurs)
+
 ## v2.0.3 2016-02-29
 
   * Fixed an issue with rfc2231 filenames
