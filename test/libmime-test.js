@@ -258,6 +258,19 @@ describe('libmime', function () {
 
             expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
         });
+
+        it('should handle params only', function () {
+            var str = '; CHARSET= UTF-8; format=flowed;',
+                obj = {
+                    value: '',
+                    params: {
+                        charset: 'UTF-8',
+                        format: 'flowed'
+                    }
+                };
+
+            expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
+        });
     });
 
     describe('#_buildHeaderValue', function () {
