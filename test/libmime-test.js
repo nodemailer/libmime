@@ -115,6 +115,10 @@ describe('libmime', function () {
         it('should ignore language param', function () {
             expect('Hello: See on õhin test').to.equal(libmime.decodeWords('Hello: =?UTF-8*EN?q?See_on_=C3=B5hin_test?='));
         });
+
+        it('should handle invalidly split mime words', function () {
+            expect('гос (передай кому надо тоже').to.equal(libmime.decodeWords('=?utf-8?Q?=D0=B3=D0=BE=D1=81_?==?utf-8?Q?(=D0=BF=D0=B5=D1=80=D0=B5=\r\n D0=B4=D0=B0=D0=B9_=D0=BA=D0=BE=D0?=\r\n =?utf-8?Q?=BC=D1=83_=D0=BD=D0=B0=D0=B4=D0=BE_=D1=82=D0=BE=D0=B6=D0=B5?='));
+        });
     });
 
     describe('#buildHeaderParam', function () {
