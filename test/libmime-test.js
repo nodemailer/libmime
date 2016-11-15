@@ -346,6 +346,24 @@ describe('libmime', function () {
                 }
             })).to.equal('test; filename="document a.pdf"');
         });
+
+        it('should quote filename with special characters like parenthesis and comma', function () {
+            // The case of browser downloads when we download multiple files with same name.
+            expect(libmime.buildHeaderValue({
+                value: 'test',
+                params: {
+                    filename: 'receipt(3).pdf'
+                }
+            })).to.equal('test; filename="receipt(3).pdf"');
+
+            // For headers which are comma separated as in case of multiple from members elements.
+            expect(libmime.buildHeaderValue({
+                value: 'test',
+                params: {
+                    filename: 'jack,jill.pdf'
+                }
+            })).to.equal('test; filename="jack,jill.pdf"');
+        });
     });
 
     describe('#encodeFlowed', function () {
