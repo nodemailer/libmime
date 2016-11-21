@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.1 2016-11-15
+
+  * Fixed issue with special symbols in attachment filenames
+
 ## v2.1.0 2016-07-24
 
   * Changed handling of base64 encoded mime words where multiple words are joined together if possible. This fixes issues with multi byte characters getting split into different mime words (against the RFC but occurs)
