@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.2 2016-11-21
+
+  * Quote special symbols as defined in RFC (surajwy)
+
 ## v2.1.1 2016-11-15
 
   * Fixed issue with special symbols in attachment filenames
