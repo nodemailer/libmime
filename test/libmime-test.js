@@ -347,7 +347,9 @@ describe('libmime', function () {
             })).to.equal('test; filename="document a.pdf"');
         });
 
-        it('should quote filename with special characters like parenthesis and comma', function () {
+        // For exhaustive list of special characters
+        // Refer: https://www.w3.org/Protocols/rfc1341/4_Content-Type.html
+        it('should quote filename with special characters', function () {
             // The case of browser downloads when we download multiple files with same name.
             expect(libmime.buildHeaderValue({
                 value: 'test',
@@ -363,6 +365,57 @@ describe('libmime', function () {
                     filename: 'jack,jill.pdf'
                 }
             })).to.equal('test; filename="jack,jill.pdf"');
+
+            // Added support for some more special characters
+            var correctString = [
+                'space="x y"',
+                'small_bracket_open="x(y"',
+                'small_bracket_close="x)y"',
+                'angle_bracket_open="x<y"',
+                'angle_bracket_close="x>y"',
+                'at_the_rate="x@y"',
+                'semicolon="x;y"',
+                'colon="x:y"',
+                'back_slash="x\\\\y"',
+                'single_quote="x\'y"',
+                'double_quotes="x\\"y"',
+                'forward_slash="x/y"',
+                'big_bracket_open="x[y"',
+                'big_bracket_close="x]y"',
+                'question_mark="x?y"',
+                'comma="x,y"',
+                'full_stop="x.y"',
+                'equals="x=y"',
+                'negative_in_mid=x-y',
+                'negative_in_start="-x"'
+            ].join('; ');
+
+            expect(libmime.buildHeaderValue({
+                value : 'test',
+                params: {
+                    space              : 'x y',
+                    small_bracket_open : 'x(y',
+                    small_bracket_close: 'x)y',
+                    angle_bracket_open : 'x<y',
+                    angle_bracket_close: 'x>y',
+                    at_the_rate        : 'x@y',
+                    semicolon          : 'x;y',
+                    colon              : 'x:y',
+                    back_slash         : 'x\\y',
+                    single_quote       : 'x\'y',
+                    double_quotes      : 'x"y',
+                    forward_slash      : 'x/y',
+                    big_bracket_open   : 'x[y',
+                    big_bracket_close  : 'x]y',
+                    question_mark      : 'x?y',
+                    comma              : 'x,y',
+                    full_stop          : 'x.y',
+                    equals             : 'x=y',
+                    negative_in_mid    : 'x-y',
+                    negative_in_start  : '-x'
+                }
+            })).to.equal('test; ' + correctString);
+
         });
     });
 
