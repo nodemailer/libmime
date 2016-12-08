@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.1.3 2016-12-08
+
+  * Revert dot as a special symbol
+
 ## v2.1.2 2016-11-21
 
   * Quote special symbols as defined in RFC (surajwy)

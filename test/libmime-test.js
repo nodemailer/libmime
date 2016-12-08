@@ -384,7 +384,6 @@ describe('libmime', function () {
                 'big_bracket_close="x]y"',
                 'question_mark="x?y"',
                 'comma="x,y"',
-                'full_stop="x.y"',
                 'equals="x=y"',
                 'negative_in_mid=x-y',
                 'negative_in_start="-x"'
@@ -409,7 +408,6 @@ describe('libmime', function () {
                     big_bracket_close  : 'x]y',
                     question_mark      : 'x?y',
                     comma              : 'x,y',
-                    full_stop          : 'x.y',
                     equals             : 'x=y',
                     negative_in_mid    : 'x-y',
                     negative_in_start  : '-x'
