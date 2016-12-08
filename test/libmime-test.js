@@ -94,9 +94,7 @@ describe('libmime', function () {
 
         it('should split QP on maxLength', function () {
             var inputStr = 'Jõgeva Jõgeva Jõgeva mugeva Jõgeva Jõgeva Jõgeva Jõgeva Jõgeva',
-                outputStr = '=?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva?= mugeva ' +
-                '=?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva_?= ' +
-                '=?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva?=',
+                outputStr = '=?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?J=C3=B5geva_?= =?UTF-8?Q?mugeva_J?= =?UTF-8?Q?=C3=B5geva_J?= =?UTF-8?Q?=C3=B5geva_J?= =?UTF-8?Q?=C3=B5geva_J?= =?UTF-8?Q?=C3=B5geva_J?= =?UTF-8?Q?=C3=B5geva?=',
                 encoded = libmime.encodeWords(inputStr, 'Q', 16);
 
             expect(outputStr).to.equal(encoded);
@@ -105,7 +103,7 @@ describe('libmime', function () {
 
         it('should split base64 on maxLength', function () {
             var inputStr = 'õõõõõ õõõõõ õõõõõ mugeva õõõõõ õõõõõ õõõõõ õõõõõ Jõgeva',
-                outputStr = '=?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtQ==?= mugeva =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSBK?= =?UTF-8?B?w7VnZXZh?=',
+                outputStr = '=?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSA=?= =?UTF-8?B?w7XDtcO1w7XDtSBt?= =?UTF-8?B?dWdldmEgw7XDtcO1?= =?UTF-8?B?w7XDtSDDtcO1w7U=?= =?UTF-8?B?w7XDtSDDtcO1w7U=?= =?UTF-8?B?w7XDtSDDtcO1w7U=?= =?UTF-8?B?w7XDtSBKw7VnZXZh?=',
                 encoded = libmime.encodeWords(inputStr, 'B', 30);
 
             expect(outputStr).to.equal(encoded);
@@ -390,27 +388,27 @@ describe('libmime', function () {
             ].join('; ');
 
             expect(libmime.buildHeaderValue({
-                value : 'test',
+                value: 'test',
                 params: {
-                    space              : 'x y',
-                    small_bracket_open : 'x(y',
+                    space: 'x y',
+                    small_bracket_open: 'x(y',
                     small_bracket_close: 'x)y',
-                    angle_bracket_open : 'x<y',
+                    angle_bracket_open: 'x<y',
                     angle_bracket_close: 'x>y',
-                    at_the_rate        : 'x@y',
-                    semicolon          : 'x;y',
-                    colon              : 'x:y',
-                    back_slash         : 'x\\y',
-                    single_quote       : 'x\'y',
-                    double_quotes      : 'x"y',
-                    forward_slash      : 'x/y',
-                    big_bracket_open   : 'x[y',
-                    big_bracket_close  : 'x]y',
-                    question_mark      : 'x?y',
-                    comma              : 'x,y',
-                    equals             : 'x=y',
-                    negative_in_mid    : 'x-y',
-                    negative_in_start  : '-x'
+                    at_the_rate: 'x@y',
+                    semicolon: 'x;y',
+                    colon: 'x:y',
+                    back_slash: 'x\\y',
+                    single_quote: 'x\'y',
+                    double_quotes: 'x"y',
+                    forward_slash: 'x/y',
+                    big_bracket_open: 'x[y',
+                    big_bracket_close: 'x]y',
+                    question_mark: 'x?y',
+                    comma: 'x,y',
+                    equals: 'x=y',
+                    negative_in_mid: 'x-y',
+                    negative_in_start: '-x'
                 }
             })).to.equal('test; ' + correctString);
 
@@ -541,10 +539,10 @@ describe('libmime', function () {
     describe('#foldLines', function () {
         it('should Fold long header line', function () {
             var inputStr = 'Subject: Testin command line kirja õkva kakva mõni tõnis kõllas põllas tõllas rõllas jušla kušla tušla musla',
-                outputStr = 'Subject: Testin command line kirja =?UTF-8?Q?=C3=B5kva?= kakva\r\n' +
-                ' =?UTF-8?Q?m=C3=B5ni_t=C3=B5nis_k=C3=B5llas_p=C3=B5?=\r\n' +
-                ' =?UTF-8?Q?llas_t=C3=B5llas_r=C3=B5llas_ju=C5=A1la_?=\r\n' +
-                ' =?UTF-8?Q?ku=C5=A1la_tu=C5=A1la?= musla',
+                outputStr = 'Subject: Testin command line kirja\r\n' +
+                ' =?UTF-8?Q?=C3=B5kva_kakva_m=C3=B5ni_t=C3=B5nis_k?=\r\n' +
+                ' =?UTF-8?Q?=C3=B5llas_p=C3=B5llas_t=C3=B5llas_r?=\r\n' +
+                ' =?UTF-8?Q?=C3=B5llas_ju=C5=A1la_ku=C5=A1la_tu?= =?UTF-8?Q?=C5=A1la?= musla',
                 encodedHeaderLine = libmime.encodeWords(inputStr, 'Q', 52);
 
             expect(outputStr).to.equal(libmime.foldLines(encodedHeaderLine, 76));

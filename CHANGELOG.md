@@ -1,5 +1,9 @@
 # Changelog
 
+## v3.0.0 2016-12-08
+
+  * Updated encoded-word generation. Previously a minimal value was encoded, so it was possible to have multiple encoded words in a string separated by non encoded-words. This was an issue with some webmail clients that stripped out the non-encoded parts between encoded-words so the updated method uses wide match by encoding from the first word with unicode characters to the last word. "a =?b?= c =?d?= e" -> "a =?bcd?= e"
+
 ## v2.1.3 2016-12-08
 
   * Revert dot as a special symbol
