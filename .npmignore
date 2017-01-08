@@ -1,4 +1,5 @@
 .travis.yml
-.jshintrc
+.eslintrc.js
+.gitignore
 Gruntfile.js
 test

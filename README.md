@@ -14,6 +14,8 @@
 
 ## Methods
 
+**NB!** charset decoding methods (eg. `decodeWords`) throw if an unknown charset is used
+
 ### Encoded Words
 
 #### #encodeWord
