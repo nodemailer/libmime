@@ -22,9 +22,9 @@ Encodes a string into mime [encoded word](http://en.wikipedia.org/wiki/MIME#Enco
 
     libmime.encodeWord(str [, mimeWordEncoding[, maxLength]]) → String
 
-  * **str** - String or Buffer to be encoded
-  * **mimeWordEncoding** - Encoding for the mime word, either Q or B (default is 'Q')
-  * **maxLength** - If set, split mime words into several chunks if needed
+*   **str** - String or Buffer to be encoded
+*   **mimeWordEncoding** - Encoding for the mime word, either Q or B (default is 'Q')
+*   **maxLength** - If set, split mime words into several chunks if needed
 
 **Example**
 
@@ -34,31 +34,15 @@ Becomes with UTF-8 and Quoted-printable encoding
 
     =?UTF-8?Q?See_on_=C3=B5hin_test?=
 
-#### #decodeWord
-
-Decodes a string from mime encoded word format.
-
-    libmime.decodeWord(str) → String
-
-  * **str** - String to be decoded
-
-**Example**
-
-    libmime.decodeWord('=?UTF-8?Q?See_on_=C3=B5hin_test?=');
-
-will become
-
-    See on õhin test
-
 #### #encodeWords
 
 Encodes non ascii sequences in a string to mime words.
 
     libmime.encodeWords(str[, mimeWordEncoding[, maxLength]) → String
 
-  * **str** - String or Buffer to be encoded
-  * **mimeWordEncoding** - Encoding for the mime word, either Q or B (default is 'Q')
-  * **maxLength** - If set, split mime words into several chunks if needed
+*   **str** - String or Buffer to be encoded
+*   **mimeWordEncoding** - Encoding for the mime word, either Q or B (default is 'Q')
+*   **maxLength** - If set, split mime words into several chunks if needed
 
 #### #decodeWords
 
@@ -66,7 +50,7 @@ Decodes a string that might include one or several mime words. If no mime words 
 
     libmime.decodeWords(str) → String
 
-  * **str** - String to be decoded
+*   **str** - String to be decoded
 
 ### Folding
 
@@ -76,9 +60,9 @@ Folds a long line according to the [RFC 5322](http://tools.ietf.org/html/rfc5322
 
     libmime.foldLines(str [, lineLength[, afterSpace]]) → String
 
-  * **str** - String to be folded
-  * **lineLength** - Maximum length of a line (defaults to 76)
-  * **afterSpace** - If true, leave a space in the end of a line
+*   **str** - String to be folded
+*   **lineLength** - Maximum length of a line (defaults to 76)
+*   **afterSpace** - If true, leave a space in the end of a line
 
 **Example**
 
@@ -89,15 +73,14 @@ results in
     Content-Type: multipart/alternative;
          boundary="----zzzz----"
 
-
 #### #encodeFlowed
 
 Adds soft line breaks to content marked with `format=flowed` options to ensure that no line in the message is never longer than lineLength.
 
     libmime.encodeFlowed(str [, lineLength]) → String
 
-  * **str** Plaintext string that requires wrapping
-  * **lineLength** (defaults to 76) Maximum length of a line
+*   **str** Plaintext string that requires wrapping
+*   **lineLength** (defaults to 76) Maximum length of a line
 
 #### #decodeFlowed
 
@@ -105,8 +88,8 @@ Unwraps a plaintext string in format=flowed wrapping.
 
     libmime.decodeFlowed(str [, delSp]) → String
 
-  * **str** Plaintext string with format=flowed to decode
-  * **delSp** If true, delete leading spaces (delsp=yes)
+*   **str** Plaintext string with format=flowed to decode
+*   **delSp** If true, delete leading spaces (delsp=yes)
 
 ### Headers
 
@@ -116,7 +99,7 @@ Unfolds a header line and splits it to key and value pair. The return value is i
 
     libmime.decodeHeader(headerLine) → Object
 
-  * **headerLine** - Single header line, might include linebreaks as well if folded
+*   **headerLine** - Single header line, might include linebreaks as well if folded
 
 #### #decodeHeaders
 
@@ -126,7 +109,7 @@ Return value is an object of headers, where header keys are object keys and valu
 
     libmime.decodeHeaders(headers) → Object
 
-  * **headers** - Headers string
+*   **headers** - Headers string
 
 #### #parseHeaderValue
 
@@ -135,7 +118,7 @@ Parses a header value with `key=value` arguments into a structured object. Usefu
 
     parseHeaderValue(valueString) → Object
 
-  * **valueString** - a header value without the key
+*   **valueString** - a header value without the key
 
 **Example**
 
@@ -160,7 +143,7 @@ Joins structured header value together as 'value; param1=value1; param2=value2'
 
     buildHeaderValue(structuredHeader) → String
 
-  * **structuredHeader** - a header value formatted with `parseHeaderValue`
+*   **structuredHeader** - a header value formatted with `parseHeaderValue`
 
 `filename` argument is encoded with continuation encoding if needed
 
@@ -170,9 +153,9 @@ Encodes and splits a header param value according to [RFC2231](https://tools.iet
 
     libmime.buildHeaderParam(key, str, maxLength) → Array
 
-  * **key** - Parameter key (eg. `filename`)
-  * **str** - String or an Buffer value to encode
-  * **maxLength** - Maximum length of the encoded string part (not line length). Defaults to 50
+*   **key** - Parameter key (eg. `filename`)
+*   **str** - String or an Buffer value to encode
+*   **maxLength** - Maximum length of the encoded string part (not line length). Defaults to 50
 
 The method returns an array of encoded parts with the following structure: `[{key:'...', value: '...'}]`
 
@@ -201,7 +184,7 @@ Returns file extension for a content type string. If no suitable extensions are 
 
     libmime.detectExtension(mimeType) → String
 
-  * **mimeType** - Content type to be checked for
+*   **mimeType** - Content type to be checked for
 
 **Example**
 
@@ -213,7 +196,7 @@ Returns content type for a file extension. If no suitable content types are foun
 
     libmime.detectMimeType(extension) → String
 
-  * **extension** Extension (or filename) to be checked for
+*   **extension** Extension (or filename) to be checked for
 
 **Example**
 
