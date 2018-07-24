@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.0.1 2018-07-24
+
+*   Maintenance release. Bumped deps
+
 ## v4.0.0 2018-06-11
 
 *   Refactored decoding of mime encoded words and parameter continuation strings
