@@ -1,49 +1,53 @@
 # Changelog
 
+## v4.1.0 2019-05-01
+
+-   Experimental support for node-iconv
+
 ## v4.0.1 2018-07-24
 
-*   Maintenance release. Bumped deps
+-   Maintenance release. Bumped deps
 
 ## v4.0.0 2018-06-11
 
-*   Refactored decoding of mime encoded words and parameter continuation strings
+-   Refactored decoding of mime encoded words and parameter continuation strings
 
 ## v3.0.0 2016-12-08
 
-*   Updated encoded-word generation. Previously a minimal value was encoded, so it was possible to have multiple encoded words in a string separated by non encoded-words. This was an issue with some webmail clients that stripped out the non-encoded parts between encoded-words so the updated method uses wide match by encoding from the first word with unicode characters to the last word. "a =?b?= c =?d?= e" -> "a =?bcd?= e"
+-   Updated encoded-word generation. Previously a minimal value was encoded, so it was possible to have multiple encoded words in a string separated by non encoded-words. This was an issue with some webmail clients that stripped out the non-encoded parts between encoded-words so the updated method uses wide match by encoding from the first word with unicode characters to the last word. "a =?b?= c =?d?= e" -> "a =?bcd?= e"
 
 ## v2.1.3 2016-12-08
 
-*   Revert dot as a special symbol
+-   Revert dot as a special symbol
 
 ## v2.1.2 2016-11-21
 
-*   Quote special symbols as defined in RFC (surajwy)
+-   Quote special symbols as defined in RFC (surajwy)
 
 ## v2.1.1 2016-11-15
 
-*   Fixed issue with special symbols in attachment filenames
+-   Fixed issue with special symbols in attachment filenames
 
 ## v2.1.0 2016-07-24
 
-*   Changed handling of base64 encoded mime words where multiple words are joined together if possible. This fixes issues with multi byte characters getting split into different mime words (against the RFC but occurs)
+-   Changed handling of base64 encoded mime words where multiple words are joined together if possible. This fixes issues with multi byte characters getting split into different mime words (against the RFC but occurs)
 
 ## v2.0.3 2016-02-29
 
-*   Fixed an issue with rfc2231 filenames
+-   Fixed an issue with rfc2231 filenames
 
 ## v2.0.2 2016-02-11
 
-*   Fixed an issue with base64 mime words encoding
+-   Fixed an issue with base64 mime words encoding
 
 ## v2.0.1 2016-02-11
 
-*   Fix base64 mime-word encoding. Final string length was calculated invalidly
+-   Fix base64 mime-word encoding. Final string length was calculated invalidly
 
 ## v2.0.0 2016-01-04
 
-*   Replaced jshint with eslint
-*   Refactored file structure
+-   Replaced jshint with eslint
+-   Refactored file structure
 
 ## v1.2.1 2015-10-05
 

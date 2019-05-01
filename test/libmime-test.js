@@ -3,11 +3,12 @@
 
 'use strict';
 
-let libmime = require('../lib/libmime');
-let charset = require('../lib/charset');
+const libmime = require('../lib/libmime');
+const charset = require('../lib/charset');
+const Iconv = require('iconv').Iconv;
 
-let chai = require('chai');
-let expect = chai.expect;
+const chai = require('chai');
+const expect = chai.expect;
 chai.config.includeStack = true;
 
 describe('libmime', () => {
@@ -127,6 +128,15 @@ describe('libmime', () => {
                     '=?utf-8?Q?=D0=B3=D0=BE=D1=81_?==?utf-8?Q?(=D0=BF=D0=B5=D1=80=D0=B5=\r\n D0=B4=D0=B0=D0=B9_=D0=BA=D0=BE=D0?=\r\n =?utf-8?Q?=BC=D1=83_=D0=BD=D0=B0=D0=B4=D0=BE_=D1=82=D0=BE=D0=B6=D0=B5?='
                 )
             );
+        });
+
+        it.only('should fail using iconv-lite module', () => {
+            expect(libmime.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.not.equal('学校技術員研修検討会報告');
+        });
+
+        it.only('should decode using iconv module', () => {
+            let lm = new libmime.Libmime({ Iconv });
+            expect(lm.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.equal('学校技術員研修検討会報告');
         });
     });
 
