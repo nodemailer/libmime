@@ -522,6 +522,26 @@ describe('libmime', () => {
                     'abc';
             expect(libmime.decodeFlowed(folded, true)).to.equal(str);
         });
+
+        it('should remove SP CRLF before space', () => {
+            let str = 'first\nsecond\nthird continued',
+                folded =
+                    'first\r\n' +
+                    'second\r\n' +
+                    'third \r\n' +
+                    ' continued';
+            expect(libmime.decodeFlowed(folded, true)).to.equal(str);
+        });
+
+        it('should remove SP CRLF after space', () => {
+            let str = 'first\nsecond\nthird continued',
+                folded =
+                    'first\r\n' +
+                    'second\r\n' +
+                    'third  \r\n' +
+                    'continued';
+            expect(libmime.decodeFlowed(folded, true)).to.equal(str);
+        });
     });
 
     describe('#charset', () => {
