@@ -130,11 +130,11 @@ describe('libmime', () => {
             );
         });
 
-        it.only('should fail using iconv-lite module', () => {
+        it('should fail using iconv-lite module', () => {
             expect(libmime.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.not.equal('学校技術員研修検討会報告');
         });
 
-        it.only('should decode using iconv module', () => {
+        it('should decode using iconv module', () => {
             let lm = new libmime.Libmime({ Iconv });
             expect(lm.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.equal('学校技術員研修検討会報告');
         });
@@ -520,6 +520,26 @@ describe('libmime', () => {
                     '  Hello\r\n' +
                     ' > abc\r\n' +
                     'abc';
+            expect(libmime.decodeFlowed(folded, true)).to.equal(str);
+        });
+
+        it('should remove SP CRLF before space', () => {
+            let str = 'first\nsecond\nthird continued',
+                folded =
+                    'first\r\n' +
+                    'second\r\n' +
+                    'third \r\n' +
+                    ' continued';
+            expect(libmime.decodeFlowed(folded, true)).to.equal(str);
+        });
+
+        it('should remove SP CRLF after space', () => {
+            let str = 'first\nsecond\nthird continued',
+                folded =
+                    'first\r\n' +
+                    'second\r\n' +
+                    'third  \r\n' +
+                    'continued';
             expect(libmime.decodeFlowed(folded, true)).to.equal(str);
         });
     });
