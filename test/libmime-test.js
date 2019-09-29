@@ -98,6 +98,11 @@ describe('libmime', () => {
             );
         });
 
+        it('should join base64 encoding which end with = and decode correctly', () => {
+            const input = '=?UTF-8?B?MjAxOSDovrLmm4bmlrDlubTpm7vlrZDos4DljaHlj4rnsL3lkI3mqg==?= =?UTF-8?B?lA==?=';
+            expect(libmime.decodeWords(input)).to.equal('2019 農曆新年電子賀卡及簽名檔');
+        });
+
         it('should split QP on maxLength', () => {
             let inputStr = 'Jõgeva Jõgeva Jõgeva mugeva Jõgeva Jõgeva Jõgeva Jõgeva Jõgeva',
                 outputStr =
