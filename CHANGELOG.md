@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.2.1 2019-10-28
+
+-   Replace jconv with more recent encoding-japanese
+
 ## v4.2.0 2019-10-28
 
 -   Use jconv module to parse ISO-2022-JP by default
