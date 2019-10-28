@@ -134,8 +134,8 @@ describe('libmime', () => {
             );
         });
 
-        it('should fail using iconv-lite module', () => {
-            expect(libmime.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.not.equal('学校技術員研修検討会報告');
+        it('should decode using jconv module', () => {
+            expect(libmime.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.equal('学校技術員研修検討会報告');
         });
 
         it('should decode using iconv module', () => {

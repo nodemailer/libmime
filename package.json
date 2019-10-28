@@ -1,7 +1,7 @@
 {
     "name": "libmime",
     "description": "Encode and decode quoted printable and base64 strings",
-    "version": "4.1.4",
+    "version": "4.2.0",
     "main": "lib/libmime",
     "homepage": "https://github.com/andris9/libmime",
     "repository": {
@@ -20,6 +20,7 @@
     },
     "dependencies": {
         "iconv-lite": "0.5.0",
+        "jconv": "^0.1.5",
         "libbase64": "1.2.1",
         "libqp": "1.1.0"
     },

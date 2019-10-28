@@ -1,5 +1,9 @@
 # Changelog
 
+## v4.2.0 2019-10-28
+
+-   Use jconv module to parse ISO-2022-JP by default
+
 ## v4.1.4 2019-10-28
 
 -   decodeWords should also decode empty content part [WeiAnAn](9bbcfd2)
