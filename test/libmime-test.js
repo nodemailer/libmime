@@ -143,6 +143,10 @@ describe('libmime', () => {
             let lm = new libmime.Libmime({ Iconv });
             expect(lm.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.equal('学校技術員研修検討会報告');
         });
+
+        it('should also decode content empty part', () => {
+            expect(libmime.decodeWords('=?UTF-8?Q??= =?UTF-8?Q?=E4=BD=A0=E5=A5=BD?=')).to.equal('你好');
+        });
     });
 
     describe('#buildHeaderParam', () => {
