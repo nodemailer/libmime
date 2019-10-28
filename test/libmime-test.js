@@ -1,5 +1,4 @@
 /* eslint no-unused-expressions:0, no-invalid-this:0, quotes: 0 */
-/* globals describe, it */
 
 'use strict';
 

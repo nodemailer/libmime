@@ -1,5 +1,10 @@
 # Changelog
 
+## v4.1.4 2019-10-28
+
+-   decodeWords should also decode empty content part [WeiAnAn](9bbcfd2)
+-   fix decode base64 ending with = [WeiAnAn](6e656e2)
+
 ## v4.1.0 2019-05-01
 
 -   Experimental support for node-iconv
