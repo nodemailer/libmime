@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.0.0 2020-07-22
+
+-   Removed optional node-iconv support
+-   Bumped dependencies
+-   Updated Travis test matrix, dropped Node 8
+
 ## v4.2.1 2019-10-28
 
 -   Replace jconv with more recent encoding-japanese

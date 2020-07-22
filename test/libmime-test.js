@@ -4,7 +4,6 @@
 
 const libmime = require('../lib/libmime');
 const charset = require('../lib/charset');
-const Iconv = require('iconv').Iconv;
 
 const chai = require('chai');
 const expect = chai.expect;
@@ -136,11 +135,6 @@ describe('libmime', () => {
 
         it('should decode using jconv module', () => {
             expect(libmime.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.equal('学校技術員研修検討会報告');
-        });
-
-        it('should decode using iconv module', () => {
-            let lm = new libmime.Libmime({ Iconv });
-            expect(lm.decodeWords('=?ISO-2022-JP?B?GyRCM1g5OzU7PVEwdzgmPSQ4IUYkMnFKczlwGyhC?=')).to.equal('学校技術員研修検討会報告');
         });
 
         it('should also decode content empty part', () => {
