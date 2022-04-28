@@ -1,5 +1,11 @@
 # Changelog
 
+## v5.1.0 2022-04-28
+
+-   Bumped deps
+-   Removed Travis config
+-   Added Github actions file to run tests
+
 ## v5.0.0 2020-07-22
 
 -   Removed optional node-iconv support
