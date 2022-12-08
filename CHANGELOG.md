@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.2.0 2022-12-08
+
+-   Bumped libqp to get rid of `new Buffer` warnings
+
 ## v5.1.0 2022-04-28
 
 -   Bumped deps
