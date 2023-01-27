@@ -1,5 +1,9 @@
 # Changelog
 
+## v5.2.1 2023-01-27
+
+-   Fix base64 encoding for emoji bytes in encoded words
+
 ## v5.2.0 2022-12-08
 
 -   Bumped libqp to get rid of `new Buffer` warnings

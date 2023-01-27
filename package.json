@@ -1,7 +1,7 @@
 {
     "name": "libmime",
     "description": "Encode and decode quoted printable and base64 strings",
-    "version": "5.2.0",
+    "version": "5.2.1",
     "main": "lib/libmime",
     "homepage": "https://github.com/andris9/libmime",
     "repository": {
@@ -27,11 +27,11 @@
     "devDependencies": {
         "chai": "4.3.7",
         "eslint-config-nodemailer": "1.2.0",
-        "eslint-config-prettier": "8.5.0",
+        "eslint-config-prettier": "8.6.0",
         "grunt": "1.5.3",
         "grunt-cli": "1.4.3",
         "grunt-eslint": "24.0.1",
         "grunt-mocha-test": "0.13.3",
-        "mocha": "10.1.0"
+        "mocha": "10.2.0"
     }
 }
