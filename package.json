@@ -6,7 +6,7 @@
     "homepage": "https://github.com/andris9/libmime",
     "repository": {
         "type": "git",
-        "url": "https://github.com/andris9/libmime.git"
+        "url": "git+https://github.com/andris9/libmime.git"
     },
     "license": "MIT",
     "keywords": [
