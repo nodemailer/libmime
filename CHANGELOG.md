@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.1](https://github.com/nodemailer/libmime/compare/v5.3.0...v5.3.1) (2024-02-23)
+
+
+### Bug Fixes
+
+* **deploy:** include package-lock.json ([8363bf4](https://github.com/nodemailer/libmime/commit/8363bf42c889e95fccf1c3f017db759434481bc1))
+
 ## [5.3.0](https://github.com/nodemailer/libmime/compare/v5.2.1...v5.3.0) (2024-02-23)
 
 
