@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.3.4](https://github.com/nodemailer/libmime/compare/v5.3.3...v5.3.4) (2024-02-23)
+
+
+### Bug Fixes
+
+* **deploy:** fixed git repo url ([0f3e5f4](https://github.com/nodemailer/libmime/commit/0f3e5f4b3f5fabe91967cd9842ebe00622181796))
+* **deploy:** fixed git repo url ([4d584ad](https://github.com/nodemailer/libmime/commit/4d584ad7dd51cf0ad60f756a5d7c9470cca30319))
+
 ## [5.3.3](https://github.com/nodemailer/libmime/compare/v5.3.2...v5.3.3) (2024-02-23)
 
 
