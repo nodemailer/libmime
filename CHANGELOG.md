@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.0](https://github.com/nodemailer/libmime/compare/v5.2.1...v5.3.0) (2024-02-23)
+
+
+### Features
+
+* **deploy:** added autopublish ([3e8109f](https://github.com/nodemailer/libmime/commit/3e8109f19bc7b9fb313467f61177ab08459ecf21))
+
 ## v5.2.1 2023-01-27
 
 -   Fix base64 encoding for emoji bytes in encoded words
