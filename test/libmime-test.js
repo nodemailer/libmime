@@ -2,6 +2,7 @@
 
 'use strict';
 
+const { Buffer } = require('node:buffer');
 const libmime = require('../lib/libmime');
 const charset = require('../lib/charset');
 
@@ -301,6 +302,39 @@ describe('libmime', () => {
                         single_encoded: 'ÕÄÖÜ',
                         multi_encoded: 'ÖÜÕÄ',
                         no_charset: 'OAOU'
+                    }
+                };
+
+            expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
+        });
+
+        it('should handle multi line ascii values', () => {
+            let str =
+                    'text/plain;\n' +
+                    '\tname*0=emailengine_uuendamise_kasud_ja_muud_asjad_ja_veelgi_pikem_pealk;\n' +
+                    '\tname*1=iri.txt;\n' +
+                    '\tx-apple-part-url=99AFDE83-8953-43B4-BE59-F59D6160AFAB',
+                obj = {
+                    value: 'text/plain',
+                    params: {
+                        name: 'emailengine_uuendamise_kasud_ja_muud_asjad_ja_veelgi_pikem_pealkiri.txt',
+                        'x-apple-part-url': '99AFDE83-8953-43B4-BE59-F59D6160AFAB'
+                    }
+                };
+
+            expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
+        });
+
+        it.only('should handle ARC header from MS', () => {
+            let str =
+                    'i=1; mx.microsoft.com 1; spf=fail (sender ip is 52.138.216.130) smtp.rcpttodomain=recipient.com smtp.mailfrom=sender.com; dmarc=fail (p=reject sp=reject pct=100) action=oreject header.from=sender.com; dkim=none (message not signed); arc=none (0)',
+                obj = {
+                    value: 'i=1',
+                    params: {
+                        'mx.microsoft.com 1; spf': 'fail (sender ip is 52.138.216.130) smtp.rcpttodomain=recipient.com smtp.mailfrom=sender.com',
+                        dmarc: 'fail (p=reject sp=reject pct=100) action=oreject header.from=sender.com',
+                        dkim: 'none (message not signed)',
+                        arc: 'none (0)'
                     }
                 };
 
