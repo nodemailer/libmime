@@ -325,7 +325,7 @@ describe('libmime', () => {
             expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
         });
 
-        it.only('should handle ARC header from MS', () => {
+        it('should handle ARC header from MS', () => {
             let str =
                     'i=1; mx.microsoft.com 1; spf=fail (sender ip is 52.138.216.130) smtp.rcpttodomain=recipient.com smtp.mailfrom=sender.com; dmarc=fail (p=reject sp=reject pct=100) action=oreject header.from=sender.com; dkim=none (message not signed); arc=none (0)',
                 obj = {
