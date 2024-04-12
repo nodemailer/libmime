@@ -20,7 +20,7 @@
         "update": "rm -rf node_modules package-lock.json && ncu -u && npm install"
     },
     "dependencies": {
-        "encoding-japanese": "2.0.0",
+        "encoding-japanese": "2.1.0",
         "iconv-lite": "0.6.3",
         "libbase64": "1.3.0",
         "libqp": "2.1.0"
@@ -33,6 +33,6 @@
         "grunt-cli": "1.4.3",
         "grunt-eslint": "24.3.0",
         "grunt-mocha-test": "0.13.3",
-        "mocha": "10.3.0"
+        "mocha": "10.4.0"
     }
 }
