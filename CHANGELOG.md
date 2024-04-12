@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.5](https://github.com/nodemailer/libmime/compare/v5.3.4...v5.3.5) (2024-04-12)
+
+
+### Bug Fixes
+
+* **deps:** Bumped deps ([0477e98](https://github.com/nodemailer/libmime/commit/0477e98d02d5af84f8be4b8e0856288175e913f9))
+
 ## [5.3.4](https://github.com/nodemailer/libmime/compare/v5.3.3...v5.3.4) (2024-02-23)
 
 
