@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.6](https://github.com/nodemailer/libmime/compare/v5.3.5...v5.3.6) (2024-11-29)
+
+
+### Bug Fixes
+
+* **deps:** Bumped libqp to fix issue with missing whitespace ([1137a9f](https://github.com/nodemailer/libmime/commit/1137a9f2222ed21926e69ba8855e93e5a421fecc))
+
 ## [5.3.5](https://github.com/nodemailer/libmime/compare/v5.3.4...v5.3.5) (2024-04-12)
 
 
