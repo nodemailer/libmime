@@ -29,11 +29,11 @@
     "devDependencies": {
         "chai": "4.4.1",
         "eslint-config-nodemailer": "1.2.0",
-        "eslint-config-prettier": "9.1.0",
+        "eslint-config-prettier": "10.1.5",
         "grunt": "1.6.1",
         "grunt-cli": "1.5.0",
         "grunt-eslint": "24.3.0",
         "grunt-mocha-test": "0.13.3",
-        "mocha": "10.8.2"
+        "mocha": "11.7.1"
     }
 }
