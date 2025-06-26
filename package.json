@@ -1,9 +1,12 @@
 {
     "name": "libmime",
     "description": "Encode and decode quoted printable and base64 strings",
-    "version": "5.3.6",
+    "version": "5.3.7",
     "main": "lib/libmime.js",
-    "files": ["lib", "CHANGELOG.md"],
+    "files": [
+        "lib",
+        "CHANGELOG.md"
+    ],
     "homepage": "https://github.com/nodemailer/libmime",
     "repository": {
         "type": "git",
