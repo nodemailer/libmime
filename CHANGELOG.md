@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.3.7](https://github.com/nodemailer/libmime/compare/v5.3.6...v5.3.7) (2025-06-26)
+
+
+### Bug Fixes
+
+* performance issue on large inputs to decodeFlowed() ([#25](https://github.com/nodemailer/libmime/issues/25)) ([c893811](https://github.com/nodemailer/libmime/commit/c8938111e212996f0809253eb195ef56778fc4dd))
+* replace .npmignore with files=[] in package.json ([#22](https://github.com/nodemailer/libmime/issues/22)) ([0ae2a1f](https://github.com/nodemailer/libmime/commit/0ae2a1fd830a73a1cdcee295bca94ebfe4a3c051))
+
 ## [5.3.6](https://github.com/nodemailer/libmime/compare/v5.3.5...v5.3.6) (2024-11-29)
 
 
