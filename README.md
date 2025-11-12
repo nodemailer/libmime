@@ -200,7 +200,7 @@ Returns content type for a file extension. If no suitable content types are foun
 
 **Example**
 
-    libmime.detectExtension('logo.jpg') // returns 'image/jpeg'
+    libmime.detectMimeType('logo.jpg') // returns 'image/jpeg'
 
 ## License
 
