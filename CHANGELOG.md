@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.3.8](https://github.com/nodemailer/libmime/compare/v5.3.7...v5.3.8) (2026-04-08)
+
+
+### Bug Fixes
+
+* bump iconv-lite to 0.7.2 and refresh dev tooling ([176bde0](https://github.com/nodemailer/libmime/commit/176bde025f4d1ec1dc61266330ed1d2e11457c2c))
+* charset.decode returns string for Japanese encodings ([c2cff8b](https://github.com/nodemailer/libmime/commit/c2cff8b6833d7c0d50d19bb1a63e8db1685cc866))
+
 ## [5.3.7](https://github.com/nodemailer/libmime/compare/v5.3.6...v5.3.7) (2025-06-26)
 
 
