@@ -1,6 +1,6 @@
 # libmime
 
-`libmime` provides useful MIME related functions. For Quoted-Printable and Base64 encoding and decoding see [libqp](https://github.com/andris9/libqp) and [libbase64](https://github.com/andris9/libabase64).
+`libmime` provides useful MIME related functions. For Quoted-Printable and Base64 encoding and decoding see [libqp](https://github.com/andris9/libqp) and [libbase64](https://github.com/andris9/libbase64).
 
 ## Installation
 
@@ -38,11 +38,12 @@ Becomes with UTF-8 and Quoted-printable encoding
 
 Encodes non ascii sequences in a string to mime words.
 
-    libmime.encodeWords(str[, mimeWordEncoding[, maxLength]) → String
+    libmime.encodeWords(str [, mimeWordEncoding[, maxLength[, fromCharset]]]) → String
 
 *   **str** - String or Buffer to be encoded
 *   **mimeWordEncoding** - Encoding for the mime word, either Q or B (default is 'Q')
 *   **maxLength** - If set, split mime words into several chunks if needed
+*   **fromCharset** - Source character set of `str` (defaults to `'UTF-8'`)
 
 #### #decodeWords
 
@@ -66,12 +67,12 @@ Folds a long line according to the [RFC 5322](http://tools.ietf.org/html/rfc5322
 
 **Example**
 
-    libmime.foldLines('Content-Type: multipart/alternative; boundary="----zzzz----"')
+    libmime.foldLines('Content-Type: multipart/alternative; boundary="----zzzz----"', 40)
 
 results in
 
     Content-Type: multipart/alternative;
-         boundary="----zzzz----"
+     boundary="----zzzz----"
 
 #### #encodeFlowed
 
@@ -123,7 +124,7 @@ Parses a header value with `key=value` arguments into a structured object. Usefu
 **Example**
 
 ```javascript
-parseHeaderValue('content-type: text/plain; CHARSET="UTF-8"');
+parseHeaderValue('text/plain; CHARSET="UTF-8"');
 ```
 
 Outputs
@@ -151,11 +152,12 @@ Joins structured header value together as 'value; param1=value1; param2=value2'
 
 Encodes and splits a header param value according to [RFC2231](https://tools.ietf.org/html/rfc2231#section-3) Parameter Value Continuations.
 
-    libmime.buildHeaderParam(key, str, maxLength) → Array
+    libmime.buildHeaderParam(key, str [, maxLength[, fromCharset]]) → Array
 
 *   **key** - Parameter key (eg. `filename`)
-*   **str** - String or an Buffer value to encode
+*   **str** - String or a Buffer value to encode
 *   **maxLength** - Maximum length of the encoded string part (not line length). Defaults to 50
+*   **fromCharset** - Source character set of `str` when it is a Buffer (defaults to `'UTF-8'`)
 
 The method returns an array of encoded parts with the following structure: `[{key:'...', value: '...'}]`
 
