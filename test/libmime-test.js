@@ -45,6 +45,21 @@ describe('libmime', () => {
         it('should encode base64', () => {
             expect('=?UTF-8?B?U2VlIG9uIMO1aGluIHRlc3Q=?=').to.equal(libmime.encodeWord('See on õhin test', 'B'));
         });
+
+        it('should split quoted-printable on maxLength', () => {
+            expect('=?UTF-8?Q?See_on_=C3=B5hin_t?= =?UTF-8?Q?est_natin_natin_na?= =?UTF-8?Q?tin?=').to.equal(
+                libmime.encodeWord('See on õhin test natin natin natin', 'Q', 30)
+            );
+        });
+
+        it('should keep emoji surrogate pairs together when splitting base64', () => {
+            let input = 'Hello 😊😊😊😊😊😊 world',
+                encoded = libmime.encodeWord(input, 'B', 25);
+
+            // each chunk must be valid base64 of complete utf-8, so round-trip must equal input
+            expect(libmime.decodeWords(encoded)).to.equal(input);
+            expect(encoded.indexOf('?= =?')).to.not.equal(-1);
+        });
     });
 
     describe('#encodeWords', () => {
@@ -59,6 +74,41 @@ describe('libmime', () => {
             expect(libmime.encodeWords(input1, 'Q', 52)).to.equal(output1);
             expect(libmime.encodeWords(input2, 'Q', 52)).to.equal(output2);
             expect(libmime.encodeWords(input3, 'Q', 52)).to.equal(output3);
+        });
+
+        it('should encode using base64', () => {
+            expect(libmime.encodeWords('Tere õhin', 'B')).to.equal('Tere =?UTF-8?B?w7VoaW4=?=');
+        });
+
+        it('should accept fromCharset as third argument', () => {
+            // Jõgeva encoded as ISO-8859-13 bytes
+            let buf = Buffer.from([0x4a, 0xf5, 0x67, 0x65, 0x76, 0x61]);
+            expect(libmime.encodeWords(buf, 'Q', 'iso-8859-13')).to.equal('=?UTF-8?Q?J=C3=B5geva?=');
+        });
+
+        it('should leave pure ascii input unchanged', () => {
+            expect(libmime.encodeWords('plain ascii string')).to.equal('plain ascii string');
+        });
+    });
+
+    describe('#decodeWord', () => {
+        it('should decode quoted-printable payload', () => {
+            expect(libmime.decodeWord('UTF-8', 'Q', 'See_on_=C3=B5hin_test')).to.equal('See on õhin test');
+        });
+
+        it('should decode base64 payload', () => {
+            expect(libmime.decodeWord('UTF-8', 'B', 'U2VlIG9uIMO1aGluIHRlc3Q=')).to.equal('See on õhin test');
+        });
+
+        it('should ignore RFC 2231 language tag in charset', () => {
+            // ISO-8859-13 with a language tag — without the strip iconv would not recognize the charset
+            expect(libmime.decodeWord('ISO-8859-13*EN', 'Q', 'J=F5geva')).to.equal('Jõgeva');
+        });
+
+        it('should recover from whitespace between = and hex digits', () => {
+            // line splitting can leave the '=' separated from the hex pair by whitespace
+            expect(libmime.decodeWord('UTF-8', 'Q', '= C3=B5')).to.equal('õ');
+            expect(libmime.decodeWord('UTF-8', 'Q', '=C3=\n B5')).to.equal('õ');
         });
     });
 
@@ -140,6 +190,16 @@ describe('libmime', () => {
 
         it('should also decode content empty part', () => {
             expect(libmime.decodeWords('=?UTF-8?Q??= =?UTF-8?Q?=E4=BD=A0=E5=A5=BD?=')).to.equal('你好');
+        });
+
+        it('should not join adjacent base64 words with mismatched charsets', () => {
+            // both encode 'õ' but in different charsets — they must be decoded independently,
+            // not concatenated and decoded once
+            expect(libmime.decodeWords('=?UTF-8?B?w7U=?= =?ISO-8859-13?B?9Q==?=')).to.equal('õõ');
+        });
+
+        it('should not join adjacent quoted-printable words with mismatched charsets', () => {
+            expect(libmime.decodeWords('=?UTF-8?Q?=C3=B5?= =?ISO-8859-13?Q?=F5?=')).to.equal('õõ');
         });
     });
 
@@ -228,6 +288,50 @@ describe('libmime', () => {
                     .join('; ');
             let parsedHeader = libmime.parseHeaderValue(headerLine);
             expect(input).to.equal(libmime.decodeWords(parsedHeader.params.filename));
+        });
+    });
+
+    describe('#decodeHeader', () => {
+        it('should split a header line into key and value', () => {
+            expect(libmime.decodeHeader('Subject: Hello world')).to.deep.equal({
+                key: 'subject',
+                value: 'Hello world'
+            });
+        });
+
+        it('should lowercase the key', () => {
+            expect(libmime.decodeHeader('SUBJECT: Hello')).to.deep.equal({
+                key: 'subject',
+                value: 'Hello'
+            });
+        });
+
+        it('should split only on the first colon', () => {
+            expect(libmime.decodeHeader('URL: https://example.com:8080/path')).to.deep.equal({
+                key: 'url',
+                value: 'https://example.com:8080/path'
+            });
+        });
+
+        it('should unfold continuation lines', () => {
+            expect(libmime.decodeHeader('Subject: line one\r\n\tcontinued')).to.deep.equal({
+                key: 'subject',
+                value: 'line one continued'
+            });
+        });
+
+        it('should return empty key and value for an empty line', () => {
+            expect(libmime.decodeHeader('')).to.deep.equal({
+                key: '',
+                value: ''
+            });
+        });
+
+        it('should return empty key and value when no colon is present', () => {
+            expect(libmime.decodeHeader('no colon here')).to.deep.equal({
+                key: '',
+                value: ''
+            });
         });
     });
 
@@ -348,6 +452,31 @@ describe('libmime', () => {
                     params: {
                         charset: 'UTF-8',
                         format: 'flowed'
+                    }
+                };
+
+            expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
+        });
+
+        it('should handle trailing key-only param', () => {
+            let str = 'text/plain; charset=utf-8; flag',
+                obj = {
+                    value: 'text/plain',
+                    params: {
+                        charset: 'utf-8',
+                        flag: ''
+                    }
+                };
+
+            expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
+        });
+
+        it('should handle escaped backslash inside a quoted param', () => {
+            let str = 'text/plain; name="a\\\\b"',
+                obj = {
+                    value: 'text/plain',
+                    params: {
+                        name: 'a\\b'
                     }
                 };
 
@@ -518,6 +647,16 @@ describe('libmime', () => {
                 })
             ).to.equal('test; ' + correctString);
         });
+
+        it('should split long pure-ascii param via RFC 2231 continuation', () => {
+            let longAscii = 'a'.repeat(75);
+            expect(
+                libmime.buildHeaderValue({
+                    value: 'attachment',
+                    params: { filename: longAscii }
+                })
+            ).to.equal('attachment; filename*0=' + 'a'.repeat(50) + '; filename*1=' + 'a'.repeat(25));
+        });
     });
 
     describe('#encodeFlowed', () => {
@@ -570,6 +709,13 @@ describe('libmime', () => {
                 folded = 'first\r\nsecond\r\nthird  \r\ncontinued';
             expect(libmime.decodeFlowed(folded, true)).to.equal(str);
         });
+
+        it('should preserve signature delimiter as a hard break', () => {
+            // a line ending in '-- ' is the rfc 3676 signature delimiter and
+            // must NOT be unwrapped even though it ends with a trailing space
+            let folded = 'hello\r\n-- \r\nFooter line\r\nSecond line';
+            expect(libmime.decodeFlowed(folded)).to.equal('hello\n-- \nFooter line\nSecond line');
+        });
     });
 
     describe('#charset', () => {
@@ -597,6 +743,12 @@ describe('libmime', () => {
 
                 expect(str).to.deep.equal(charset.decode(encoded, encoding));
             });
+
+            it('should decode EUC-JP', () => {
+                // 日本 in EUC-JP
+                let encoded = Buffer.from([0xc6, 0xfc, 0xcb, 0xdc]);
+                expect(charset.decode(encoded, 'EUC-JP')).to.equal('日本');
+            });
         });
 
         describe('#convert', () => {
@@ -606,6 +758,24 @@ describe('libmime', () => {
                     encoded = Buffer.from([0xbd, 0xc5]);
 
                 expect(converted).to.deep.equal(charset.convert(encoded, encoding));
+            });
+        });
+
+        describe('#normalizeCharset', () => {
+            it('should resolve curated aliases', () => {
+                expect(charset.normalizeCharset('latin1')).to.equal('windows-1252');
+            });
+
+            it('should resolve win-NNNN to windows-NNNN', () => {
+                expect(charset.normalizeCharset('win-1257')).to.equal('windows-1257');
+            });
+
+            it('should normalize separator variants', () => {
+                expect(charset.normalizeCharset('utf_8')).to.equal('UTF-8');
+            });
+
+            it('should uppercase unknown charsets', () => {
+                expect(charset.normalizeCharset('mychrset')).to.equal('MYCHRSET');
             });
         });
     });
@@ -652,6 +822,18 @@ describe('libmime', () => {
                     contentType = 'application/javascript';
 
                 expect(libmime.detectMimeType(extension)).to.equal(contentType);
+            });
+
+            it('should strip a leading dot from the extension', () => {
+                expect(libmime.detectMimeType('.jpg')).to.equal('image/jpeg');
+            });
+
+            it('should pick the last segment of a multi-dot filename', () => {
+                expect(libmime.detectMimeType('archive.tar.gz')).to.equal('application/x-gzip');
+            });
+
+            it('should fall back to application/octet-stream for unknown extensions', () => {
+                expect(libmime.detectMimeType('unknownext')).to.equal('application/octet-stream');
             });
         });
     });
