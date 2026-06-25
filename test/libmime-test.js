@@ -777,6 +777,12 @@ describe('libmime', () => {
             it('should uppercase unknown charsets', () => {
                 expect(charset.normalizeCharset('mychrset')).to.equal('MYCHRSET');
             });
+
+            it('should default missing or invalid input to UTF-8', () => {
+                expect(charset.normalizeCharset()).to.equal('UTF-8');
+                expect(charset.normalizeCharset(null)).to.equal('UTF-8');
+                expect(charset.normalizeCharset('')).to.equal('UTF-8');
+            });
         });
     });
 
@@ -869,6 +875,14 @@ describe('libmime', () => {
                     'Subject:\r\n =?UTF-8?Q?=CB=86=C2=B8=C3=81=C3=8C=C3=93=C4=B1=C3=8F=CB=87=C3=81=C3=9B^=C2=B8\\=C3=81=C4=B1=CB=86=C3=8C=C3=81=C3=9B=C3=98^\\=CB=9C=C3=9B=CB=9D=E2=84=A2=CB=87=C4=B1=C3=93=C2=B8^\\=CB=9C=EF=AC=81^\\=C2=B7\\=CB=9C=C3=98^=C2=A3=CB=9C#=EF=AC=81^\\=C2=A3=EF=AC=81^\\=C2=A3=EF=AC=81^\\?=';
 
             expect(outputStr).to.equal(libmime.foldLines(inputStr, 76));
+        });
+    });
+
+    describe('#normalizeCharset', () => {
+        it('should delegate to libcharset.normalizeCharset', () => {
+            expect(libmime.normalizeCharset('iso-8859-8-i')).to.equal('ISO-8859-8');
+            expect(libmime.normalizeCharset('iso-8859-8-e')).to.equal('ISO-8859-8');
+            expect(libmime.normalizeCharset('ISO-8859-8')).to.equal('ISO-8859-8');
         });
     });
 });
