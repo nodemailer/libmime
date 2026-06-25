@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.0](https://github.com/nodemailer/libmime/compare/v5.3.8...v5.4.0) (2026-06-25)
+
+
+### Features
+
+* expose normalizeCharset() on the public API ([f19e5dc](https://github.com/nodemailer/libmime/commit/f19e5dc6b5297e97e19286b95fc0521937bc166f))
+
 ## [5.3.8](https://github.com/nodemailer/libmime/compare/v5.3.7...v5.3.8) (2026-04-08)
 
 
