@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.1](https://github.com/nodemailer/libmime/compare/v5.4.0...v5.4.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* update dependencies (iconv-lite 0.7.3) ([a9a27bd](https://github.com/nodemailer/libmime/commit/a9a27bded62459a497ff672d1ec5c0fcd5e0de90))
+
 ## [5.4.0](https://github.com/nodemailer/libmime/compare/v5.3.8...v5.4.0) (2026-06-25)
 
 
