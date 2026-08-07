@@ -289,6 +289,29 @@ describe('libmime', () => {
             let parsedHeader = libmime.parseHeaderValue(headerLine);
             expect(input).to.equal(libmime.decodeWords(parsedHeader.params.filename));
         });
+
+        it('should normalize input that is neither a string nor a Buffer', () => {
+            expect(libmime.buildHeaderParam('size', 12345, 50)).to.deep.equal([{ key: 'size', value: '12345' }]);
+            expect(libmime.buildHeaderParam('size', 0, 50)).to.deep.equal([{ key: 'size', value: '0' }]);
+            expect(libmime.buildHeaderParam('size', null, 50)).to.deep.equal([{ key: 'size', value: '' }]);
+            expect(libmime.buildHeaderParam('size', undefined, 50)).to.deep.equal([{ key: 'size', value: '' }]);
+        });
+
+        it('should accept a Buffer as input', () => {
+            expect(libmime.buildHeaderParam('filename', Buffer.from('Jõgeva.txt'), 50)).to.deep.equal([
+                {
+                    key: 'filename*0*',
+                    value: "utf-8''J%C3%B5geva.txt"
+                }
+            ]);
+
+            expect(libmime.buildHeaderParam('filename', Buffer.from('Jõgeva.txt', 'latin1'), 50, 'iso-8859-1')).to.deep.equal([
+                {
+                    key: 'filename*0*',
+                    value: "utf-8''J%C3%B5geva.txt"
+                }
+            ]);
+        });
     });
 
     describe('#decodeHeader', () => {
@@ -353,6 +376,37 @@ describe('libmime', () => {
                     ' =?UTF-8?Q?k=C3=B5rge?= hoone, segane jutt';
 
             expect(headersObj).to.deep.equal(libmime.decodeHeaders(headersStr));
+        });
+
+        it('should not pollute prototype or crash on special header keys', () => {
+            let headersObj = libmime.decodeHeaders('__proto__: value1\r\nConstructor: value2\r\nConstructor: value3\r\nToString: value4');
+
+            // reading headersObj.__proto__ would return the prototype, so check the own property instead
+            expect(Object.getPrototypeOf(headersObj)).to.equal(Object.prototype);
+            expect(Object.getOwnPropertyDescriptor(headersObj, '__proto__').value).to.deep.equal(['value1']);
+
+            expect(Object.keys(headersObj)).to.deep.equal(['__proto__', 'constructor', 'tostring']);
+            expect(headersObj.constructor).to.deep.equal(['value2', 'value3']);
+            expect(headersObj.tostring).to.deep.equal(['value4']);
+        });
+
+        it('should stop at the end of the header block', () => {
+            // the body must not be folded into the last header
+            expect(libmime.decodeHeaders('A: 1\r\n\r\n B: 2')).to.deep.equal({ a: ['1'] });
+            expect(libmime.decodeHeaders('A: 1\r\n\r\nB: 2')).to.deep.equal({ a: ['1'] });
+            // a trailing line break does not add an empty key
+            expect(libmime.decodeHeaders('A: 1\r\n')).to.deep.equal({ a: ['1'] });
+            // a line break in front of the block is not a terminator, a caller might pass
+            // along the break that separates a mime part boundary from its headers
+            expect(libmime.decodeHeaders('\r\nA: 1\r\nB: 2')).to.deep.equal({ a: ['1'], b: ['2'] });
+        });
+
+        it('should only fold lines that start with a space or a tab', () => {
+            expect(libmime.decodeHeaders('A: 1\r\n B: 2')).to.deep.equal({ a: ['1 B: 2'] });
+            expect(libmime.decodeHeaders('A: 1\r\n\tB: 2')).to.deep.equal({ a: ['1 B: 2'] });
+            // other whitespace does not fold, so B stays a header of its own
+            expect(libmime.decodeHeaders('A: 1\r\n\u00a0B: 2')).to.deep.equal({ a: ['1'], b: ['2'] });
+            expect(libmime.decodeHeaders('A: 1\r\n\fB: 2')).to.deep.equal({ a: ['1'], b: ['2'] });
         });
     });
 
@@ -435,7 +489,9 @@ describe('libmime', () => {
                 obj = {
                     value: 'i=1',
                     params: {
-                        'mx.microsoft.com 1; spf': 'fail (sender ip is 52.138.216.130) smtp.rcpttodomain=recipient.com smtp.mailfrom=sender.com',
+                        // the authserv-id and version make up a key without a value
+                        'mx.microsoft.com 1': '',
+                        spf: 'fail (sender ip is 52.138.216.130) smtp.rcpttodomain=recipient.com smtp.mailfrom=sender.com',
                         dmarc: 'fail (p=reject sp=reject pct=100) action=oreject header.from=sender.com',
                         dkim: 'none (message not signed)',
                         arc: 'none (0)'
@@ -481,6 +537,100 @@ describe('libmime', () => {
                 };
 
             expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
+        });
+
+        it('should handle a key-only param in the middle of the list', () => {
+            let str = 'attachment; inline; filename=a.txt',
+                obj = {
+                    value: 'attachment',
+                    params: {
+                        inline: '',
+                        filename: 'a.txt'
+                    }
+                };
+
+            expect(libmime.parseHeaderValue(str)).to.deep.equal(obj);
+        });
+
+        it('should keep whitespace inside quotes', () => {
+            expect(libmime.parseHeaderValue('attachment; filename=" a.txt "')).to.deep.equal({
+                value: 'attachment',
+                params: {
+                    filename: ' a.txt '
+                }
+            });
+
+            // whitespace outside of the quotes is not part of the value
+            expect(libmime.parseHeaderValue('attachment ;  filename = "a.txt"  ')).to.deep.equal({
+                value: 'attachment',
+                params: {
+                    filename: 'a.txt'
+                }
+            });
+
+            expect(libmime.parseHeaderValue('attachment; filename= a b ')).to.deep.equal({
+                value: 'attachment',
+                params: {
+                    filename: 'a b'
+                }
+            });
+        });
+
+        it('should let a continuation param override a plain param in either order', () => {
+            // rfc6266 section 4.3, the plain param is only the ascii fallback of the extended one
+            let obj = {
+                value: 'attachment',
+                params: {
+                    filename: 'Jõgeva.txt'
+                }
+            };
+
+            expect(libmime.parseHeaderValue('attachment; filename="Jogeva.txt"; filename*=UTF-8\'\'J%C3%B5geva.txt')).to.deep.equal(obj);
+            expect(libmime.parseHeaderValue('attachment; filename*=UTF-8\'\'J%C3%B5geva.txt; filename="Jogeva.txt"')).to.deep.equal(obj);
+
+            // an empty or valueless fallback must not annihilate the extended value either
+            expect(libmime.parseHeaderValue("attachment; filename=; filename*=UTF-8''invoice.exe").params).to.deep.equal({ filename: 'invoice.exe' });
+            expect(libmime.parseHeaderValue("attachment; filename; filename*=UTF-8''invoice.exe").params).to.deep.equal({ filename: 'invoice.exe' });
+
+            // and the multi segment form behaves the same
+            expect(libmime.parseHeaderValue('inline; filename="image.png"; filename*0*=UTF-8\'\'image; filename*1*=.svg').params).to.deep.equal({
+                filename: 'image.svg'
+            });
+        });
+
+        it('should handle nested continuation keys', () => {
+            // each continuation group is assembled on its own, nothing turns into "[object Object]"
+            expect(libmime.parseHeaderValue('attachment; a**=x; a*=y').params).to.deep.equal({ 'a*': 'x', a: 'y' });
+            expect(libmime.parseHeaderValue('text/plain; foo*1**0*=a; foo*1*=b').params).to.deep.equal({ 'foo*1*': 'a', foo: 'b' });
+        });
+
+        it('should not let a charset value inject a mime word', () => {
+            expect(libmime.parseHeaderValue("attachment; filename*0*=utf-8?B?QUJD?=''zzz").params).to.deep.equal({ filename: 'zzz' });
+            expect(libmime.parseHeaderValue("attachment; filename*0*=ut?f8''abc").params).to.deep.equal({ filename: 'abc' });
+        });
+
+        it('should not pollute Object.prototype via __proto__ param keys', () => {
+            // covers every code path that stores a parsed param
+            let cases = [
+                ['text/plain; __proto__; x=1', ''],
+                ['text/plain; __proto__=plain; x=1', 'plain'],
+                ['text/plain; __proto__=plain', 'plain'],
+                ['text/plain; x=1; __proto__', ''],
+                ["text/plain; __proto__*0*=utf-8''polluted", 'polluted'],
+                ['text/plain; __proto__*0=abc', 'abc']
+            ];
+
+            for (let [str, value] of cases) {
+                let params = libmime.parseHeaderValue(str).params;
+
+                expect(Object.getPrototypeOf(params), str).to.equal(Object.prototype);
+                // a plain assignment with a string value would not create an own property at all
+                expect(Object.getOwnPropertyDescriptor(params, '__proto__').value, str).to.equal(value);
+
+                expect({}.charset, str).to.equal(undefined);
+                expect({}.values, str).to.equal(undefined);
+                expect({}.x, str).to.equal(undefined);
+            }
         });
     });
 
@@ -657,6 +807,23 @@ describe('libmime', () => {
                 })
             ).to.equal('attachment; filename*0=' + 'a'.repeat(50) + '; filename*1=' + 'a'.repeat(25));
         });
+
+        it('should handle a param value that is not a string', () => {
+            expect(
+                libmime.buildHeaderValue({
+                    value: 'attachment',
+                    params: { size: 12345 }
+                })
+            ).to.equal('attachment; size=12345');
+
+            // a falsy value must not turn into an empty param
+            expect(
+                libmime.buildHeaderValue({
+                    value: 'attachment',
+                    params: { size: 0 }
+                })
+            ).to.equal('attachment; size=0');
+        });
     });
 
     describe('#encodeFlowed', () => {
@@ -813,6 +980,12 @@ describe('libmime', () => {
 
                 expect(libmime.detectExtension(contentType)).to.equal(extension);
             });
+
+            it('should not resolve inherited Object.prototype members', () => {
+                expect(libmime.detectExtension('constructor')).to.equal('bin');
+                expect(libmime.detectExtension('__proto__')).to.equal('bin');
+                expect(libmime.detectExtension('tostring')).to.equal('bin');
+            });
         });
 
         describe('#detectMimeType', () => {
@@ -841,6 +1014,22 @@ describe('libmime', () => {
             it('should fall back to application/octet-stream for unknown extensions', () => {
                 expect(libmime.detectMimeType('unknownext')).to.equal('application/octet-stream');
             });
+
+            it('should not resolve inherited Object.prototype members', () => {
+                expect(libmime.detectMimeType('invoice.constructor')).to.equal('application/octet-stream');
+                expect(libmime.detectMimeType('__proto__')).to.equal('application/octet-stream');
+                expect(libmime.detectMimeType('tostring')).to.equal('application/octet-stream');
+            });
+        });
+    });
+
+    describe('#encodeURICharComponent', () => {
+        it('should percent encode every UTF-8 byte of a char', () => {
+            expect(libmime.encodeURICharComponent('?')).to.equal('%3F');
+            expect(libmime.encodeURICharComponent('\u0000')).to.equal('%00');
+            expect(libmime.encodeURICharComponent('š')).to.equal('%C5%A1');
+            expect(libmime.encodeURICharComponent('€')).to.equal('%E2%82%AC');
+            expect(libmime.encodeURICharComponent('😀')).to.equal('%F0%9F%98%80');
         });
     });
 
