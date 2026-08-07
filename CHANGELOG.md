@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.2](https://github.com/nodemailer/libmime/compare/v5.4.1...v5.4.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* harden header parsing against prototype pollution and parser differentials ([c470201](https://github.com/nodemailer/libmime/commit/c47020107045864c14d0c526acff1c9d2e12ed88))
+
 ## [5.4.1](https://github.com/nodemailer/libmime/compare/v5.4.0...v5.4.1) (2026-07-05)
 
 
