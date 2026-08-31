@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.3](https://github.com/nodemailer/libmime/compare/v5.4.2...v5.4.3) (2026-08-31)
+
+
+### Bug Fixes
+
+* **deps:** update encoding-japanese to 2.3.0 for the CP932 extended areas ([2a1a216](https://github.com/nodemailer/libmime/commit/2a1a216ea66b93abfcd7a891cd960efa36a83739))
+
 ## [5.4.2](https://github.com/nodemailer/libmime/compare/v5.4.1...v5.4.2) (2026-08-07)
 
 
