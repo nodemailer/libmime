@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.4](https://github.com/nodemailer/libmime/compare/v5.4.3...v5.4.4) (2026-09-15)
+
+
+### Bug Fixes
+
+* **deps:** update encoding-japanese to 2.4.0 ([047a9d6](https://github.com/nodemailer/libmime/commit/047a9d6403775575305cb5d9807c95d2c5587607))
+
 ## [5.4.3](https://github.com/nodemailer/libmime/compare/v5.4.2...v5.4.3) (2026-08-31)
 
 
