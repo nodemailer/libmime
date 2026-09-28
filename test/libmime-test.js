@@ -10,6 +10,27 @@ const chai = require('chai');
 const expect = chai.expect;
 chai.config.includeStack = true;
 
+// Best of a few runs in milliseconds, so a single GC pause does not decide a timing assertion
+function timeIt(fn) {
+    let best = Infinity;
+    for (let i = 0; i < 3; i++) {
+        let start = process.hrtime.bigint();
+        fn();
+        best = Math.min(best, Number(process.hrtime.bigint() - start) / 1e6);
+    }
+    return best;
+}
+
+// Doubling the input of a linear algorithm roughly doubles the time, a quadratic one quadruples it.
+// The constant slack keeps tiny timings from failing on scheduler noise.
+function expectLinear(build, run, n) {
+    let small = build(n);
+    let large = build(n * 2);
+    let tSmall = timeIt(() => run(small));
+    let tLarge = timeIt(() => run(large));
+    expect(tLarge, `n=${n}: ${tSmall.toFixed(1)}ms, n=${n * 2}: ${tLarge.toFixed(1)}ms`).to.be.below(tSmall * 3 + 50);
+}
+
 describe('libmime', () => {
     describe('#isPlainText', () => {
         it('should detect plain text', () => {
@@ -407,6 +428,20 @@ describe('libmime', () => {
             // other whitespace does not fold, so B stays a header of its own
             expect(libmime.decodeHeaders('A: 1\r\n\u00a0B: 2')).to.deep.equal({ a: ['1'], b: ['2'] });
             expect(libmime.decodeHeaders('A: 1\r\n\fB: 2')).to.deep.equal({ a: ['1'], b: ['2'] });
+        });
+
+        it('should keep a continuation line in front of the first header as is', () => {
+            expect(libmime.decodeHeaders(' A: 1\r\nB: 2\r\n 3\r\n\t4')).to.deep.equal({ a: ['1'], b: ['2 3 4'] });
+        });
+
+        it('should unfold many continuation lines in linear time', function () {
+            this.timeout(20000);
+            expectLinear(
+                n => 'X-A: 1\r\n 2\r\n'.repeat(n),
+                headers => libmime.decodeHeaders(headers),
+                100000
+            );
+            expect(libmime.decodeHeaders('X-A: 1\r\n 2\r\n'.repeat(3))).to.deep.equal({ 'x-a': ['1 2', '1 2', '1 2'] });
         });
     });
 
@@ -883,6 +918,26 @@ describe('libmime', () => {
             let folded = 'hello\r\n-- \r\nFooter line\r\nSecond line';
             expect(libmime.decodeFlowed(folded)).to.equal('hello\n-- \nFooter line\nSecond line');
         });
+
+        it('should only treat a whole "-- " line as the signature delimiter', () => {
+            // "-- " at the end of a longer line is an ordinary soft break
+            expect(libmime.decodeFlowed('a -- \r\nb')).to.equal('a -- b');
+            expect(libmime.decodeFlowed('-- \r\n-- \r\nb')).to.equal('-- \n-- \nb');
+            // a delsp join that happens to produce "-- " is a signature delimiter as well
+            expect(libmime.decodeFlowed('- \r\n- \r\nb', true)).to.equal('-- \nb');
+            // an empty line after a soft break does not end the paragraph, it still ends with a space
+            expect(libmime.decodeFlowed('a \r\n\r\nb \r\n')).to.equal('a b ');
+            expect(libmime.decodeFlowed('a  \r\n\r\nb', true)).to.equal('ab');
+        });
+
+        it('should decode long soft wrapped paragraphs in linear time', function () {
+            this.timeout(20000);
+            let build = n => 'word word word \r\n'.repeat(n) + 'end';
+            expectLinear(build, str => libmime.decodeFlowed(str), 25000);
+            expectLinear(build, str => libmime.decodeFlowed(str, true), 25000);
+            expect(libmime.decodeFlowed(build(3))).to.equal('word word word word word word word word word end');
+            expect(libmime.decodeFlowed(build(3), true)).to.equal('word word wordword word wordword word wordend');
+        });
     });
 
     describe('#charset', () => {
@@ -915,6 +970,29 @@ describe('libmime', () => {
                 // 日本 in EUC-JP
                 let encoded = Buffer.from([0xc6, 0xfc, 0xcb, 0xdc]);
                 expect(charset.decode(encoded, 'EUC-JP')).to.equal('日本');
+            });
+
+            it('should decode an ISO-2022-JP body', () => {
+                // "ESC $ B" switches to JIS X 0208, "ESC ( B" back to ASCII
+                let encoded = Buffer.concat([
+                    Buffer.from([0x1b, 0x24, 0x42, 0x46, 0x7c, 0x4b, 0x5c, 0x38, 0x6c, 0x1b, 0x28, 0x42]),
+                    Buffer.from(' Japanese\r\nline 2')
+                ]);
+                expect(charset.decode(encoded, 'ISO-2022-JP')).to.equal('\u65e5\u672c\u8a9e Japanese\r\nline 2');
+            });
+
+            it('should decode NEC row 13 characters', () => {
+                // circled digit one and numero sign live in the NEC special area (JIS row 13, CP932 0x87xx),
+                // which plain JIS X 0208 decoders map to nothing
+                let jis = Buffer.from([0x1b, 0x24, 0x42, 0x2d, 0x21, 0x2d, 0x62, 0x1b, 0x28, 0x42]);
+                expect(charset.decode(jis, 'ISO-2022-JP')).to.equal('\u2460\u2116');
+                expect(charset.decode(Buffer.from([0x87, 0x40, 0x87, 0x82]), 'CP932')).to.equal('\u2460\u2116');
+            });
+
+            it('should fall back to UTF-8 for an unknown charset', () => {
+                expect(charset.decode(Buffer.from([0x74, 0xc3, 0xb5]), 'x-unknown-charset')).to.equal('t\u00f5');
+                // invalid UTF-8 is replaced, not thrown
+                expect(charset.decode(Buffer.from([0x74, 0xf5]), 'x-unknown-charset')).to.equal('t\ufffd');
             });
         });
 
@@ -1020,6 +1098,45 @@ describe('libmime', () => {
                 expect(libmime.detectMimeType('__proto__')).to.equal('application/octet-stream');
                 expect(libmime.detectMimeType('tostring')).to.equal('application/octet-stream');
             });
+        });
+    });
+
+    describe('#splitMimeEncodedString', () => {
+        it('should split plain text at maxlen', () => {
+            expect(libmime.splitMimeEncodedString('abcdefghijklmnop', 12)).to.deep.equal(['abcdefghijkl', 'mnop']);
+        });
+
+        it('should not split an escaped octet', () => {
+            expect(libmime.splitMimeEncodedString('abcdefghij=C3=B5', 12)).to.deep.equal(['abcdefghij', '=C3=B5']);
+        });
+
+        it('should not split a multi byte UTF-8 sequence', () => {
+            expect(libmime.splitMimeEncodedString('=C3=B5=C3=B5=C3=B5=C3=B5=C3=B5', 12)).to.deep.equal(['=C3=B5=C3=B5', '=C3=B5=C3=B5', '=C3=B5']);
+        });
+
+        it('should use at least 12 characters per part', () => {
+            expect(libmime.splitMimeEncodedString('=E2=82=AC=E2=82=AC', 5)).to.deep.equal(['=E2=82=AC', '=E2=82=AC']);
+            expect(libmime.splitMimeEncodedString('', 12)).to.deep.equal([]);
+        });
+    });
+
+    describe('#safeEncodeURIComponent', () => {
+        it('should encode the characters encodeURIComponent leaves alone', () => {
+            expect(libmime.safeEncodeURIComponent("a b*'()")).to.equal('a%20b%2A%27%28%29');
+        });
+
+        it('should encode non ASCII characters as UTF-8', () => {
+            expect(libmime.safeEncodeURIComponent('\u00f5\u20ac\ud83d\ude00')).to.equal('%C3%B5%E2%82%AC%F0%9F%98%80');
+        });
+
+        it('should handle empty and non string input', () => {
+            expect(libmime.safeEncodeURIComponent()).to.equal('');
+            expect(libmime.safeEncodeURIComponent(null)).to.equal('');
+            expect(libmime.safeEncodeURIComponent(12)).to.equal('12');
+        });
+
+        it('should not throw on a lone surrogate', () => {
+            expect(() => libmime.safeEncodeURIComponent('\ud83d')).to.not.throw();
         });
     });
 
