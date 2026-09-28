@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.6](https://github.com/nodemailer/libmime/compare/v5.4.5...v5.4.6) (2026-09-28)
+
+
+### Bug Fixes
+
+* decode B-encoded words through libbase64 ([362f5ff](https://github.com/nodemailer/libmime/commit/362f5ff9cab6afab4a7673763f57b66d54d0f3e3))
+
 ## [5.4.5](https://github.com/nodemailer/libmime/compare/v5.4.4...v5.4.5) (2026-09-28)
 
 
