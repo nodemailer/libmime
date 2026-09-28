@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.5](https://github.com/nodemailer/libmime/compare/v5.4.4...v5.4.5) (2026-09-28)
+
+
+### Bug Fixes
+
+* linear-time flowed decoding and header unfolding ([4035752](https://github.com/nodemailer/libmime/commit/4035752083f9eee25dff595062f2f9b9bbabee2e))
+
 ## [5.4.4](https://github.com/nodemailer/libmime/compare/v5.4.3...v5.4.4) (2026-09-15)
 
 
