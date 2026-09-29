@@ -876,6 +876,27 @@ describe('libmime', () => {
     });
 
     describe('#decodeFlowed', () => {
+        it('should join soft wrapped quoted lines without copying the continuation quote marker', () => {
+            expect(libmime.decodeFlowed('> quoted soft \r\n> continued\r\nnew')).to.equal('> quoted soft continued\nnew');
+            expect(libmime.decodeFlowed('>> deep soft \r\n>> more\r\n> shallow')).to.equal('>> deep soft more\n> shallow');
+        });
+
+        it('should treat the space after a quote marker as stuffing, not a soft line break', () => {
+            // An empty quoted line written as "> " used to swallow the next quoted line and
+            // double its marker: "> > Also, ...".
+            expect(libmime.decodeFlowed('> \r\n> Also, the delivery\r\n> the system.')).to.equal('> \n> Also, the delivery\n> the system.');
+        });
+
+        it('should never join lines across a change of quote depth', () => {
+            expect(libmime.decodeFlowed('a \r\n> b')).to.equal('a \n> b');
+            expect(libmime.decodeFlowed('> a \r\nb')).to.equal('> a \nb');
+        });
+
+        it('should apply delsp to quoted soft line breaks', () => {
+            expect(libmime.decodeFlowed('> split \r\n> word', true)).to.equal('> splitword');
+        });
+
+
         it('should remove soft line breaks', () => {
             let str = 'tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere\nFrom\n Hello\n> abc\nabc',
                 folded =
