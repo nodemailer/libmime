@@ -896,7 +896,6 @@ describe('libmime', () => {
             expect(libmime.decodeFlowed('> split \r\n> word', true)).to.equal('> splitword');
         });
 
-
         it('should remove soft line breaks', () => {
             let str = 'tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere tere\nFrom\n Hello\n> abc\nabc',
                 folded =
