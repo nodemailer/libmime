@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.8](https://github.com/nodemailer/libmime/compare/v5.4.7...v5.4.8) (2026-10-14)
+
+
+### Bug Fixes
+
+* **deps:** update libbase64 to 1.3.3 ([4fa88fb](https://github.com/nodemailer/libmime/commit/4fa88fb0c6ff1f4a06bd67b53bf4bad2b1a6f5c2))
+
 ## [5.4.7](https://github.com/nodemailer/libmime/compare/v5.4.6...v5.4.7) (2026-10-04)
 
 
