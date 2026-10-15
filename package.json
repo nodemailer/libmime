@@ -38,5 +38,9 @@
         "grunt-eslint": "24.3.0",
         "grunt-mocha-test": "0.13.3",
         "mocha": "11.8.0"
+    },
+    "overrides": {
+        "diff": "8.0.4",
+        "serialize-javascript": "7.1.2"
     }
 }
