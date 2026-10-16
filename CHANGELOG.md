@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.4.9](https://github.com/nodemailer/libmime/compare/v5.4.8...v5.4.9) (2026-10-16)
+
+
+### Bug Fixes
+
+* bump libqp to 2.1.3 ([6cee51c](https://github.com/nodemailer/libmime/commit/6cee51c9f39367e762e05e07046abbd7b0e34399))
+* encode long non-ASCII words in linear time, refuse transfer-encoding codecs as charsets and mark RFC 2231 parameters as decoded ([60b3a88](https://github.com/nodemailer/libmime/commit/60b3a8881c2ff460573ee359e9d3148fcf766325))
+
 ## [5.4.8](https://github.com/nodemailer/libmime/compare/v5.4.7...v5.4.8) (2026-10-14)
 
 
