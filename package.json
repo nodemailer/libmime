@@ -27,7 +27,7 @@
         "encoding-japanese": "2.4.0",
         "iconv-lite": "0.7.3",
         "libbase64": "1.3.3",
-        "libqp": "2.1.2"
+        "libqp": "2.1.3"
     },
     "devDependencies": {
         "chai": "4.4.1",
