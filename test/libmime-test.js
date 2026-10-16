@@ -110,6 +110,26 @@ describe('libmime', () => {
         it('should leave pure ascii input unchanged', () => {
             expect(libmime.encodeWords('plain ascii string')).to.equal('plain ascii string');
         });
+
+        it('should end the encoded part with the last word that has non ascii characters', () => {
+            expect(libmime.encodeWords('õ ascii õ end')).to.equal('=?UTF-8?Q?=C3=B5_ascii_=C3=B5?= end');
+            expect(libmime.encodeWords('a b õc d')).to.equal('a b =?UTF-8?Q?=C3=B5c?= d');
+            // a non ascii whitespace char (NBSP) ends a word like any other whitespace
+            expect(libmime.encodeWords('x\u00a0õ y')).to.equal('=?UTF-8?Q?x=C2=A0=C3=B5?= y');
+            expect(libmime.encodeWords('õ\u00a0b')).to.equal('=?UTF-8?Q?=C3=B5=C2=A0b?=');
+        });
+
+        it('should encode a long non ascii word in linear time', function () {
+            this.timeout(5000);
+            // the regex that found the end of the encoded part was quadratic, 100k chars took 10 seconds
+            let input = 'é'.repeat(100000) + ' é';
+            let start = Date.now();
+            let encoded = libmime.encodeWords(input, 'Q');
+            let duration = Date.now() - start;
+            expect(duration).to.be.below(500);
+            expect(encoded).to.match(/^=\?UTF-8\?Q\?/);
+            expect(libmime.decodeWords(encoded)).to.equal(input);
+        });
     });
 
     describe('#decodeWord', () => {
@@ -221,6 +241,16 @@ describe('libmime', () => {
 
         it('should not join adjacent quoted-printable words with mismatched charsets', () => {
             expect(libmime.decodeWords('=?UTF-8?Q?=C3=B5?= =?ISO-8859-13?Q?=F5?=')).to.equal('õõ');
+        });
+
+        it('should not decode with the utf-7, base64 or hex codecs', () => {
+            // iconv-lite knows these, but a message is not written in them. UTF-7 would turn
+            // "+ADw-script+AD4-" into "<script>" past any filter that looked at the raw header
+            expect(libmime.decodeWords('=?utf-7?Q?+ADw-script+AD4-?=')).to.equal('+ADw-script+AD4-');
+            expect(libmime.decodeWords('=?UTF7?B?' + Buffer.from('+ADw-script+AD4-').toString('base64') + '?=')).to.equal('+ADw-script+AD4-');
+            expect(libmime.decodeWords('=?utf-7-imap?Q?&ADw-script&AD4-?=')).to.equal('&ADw-script&AD4-');
+            expect(libmime.decodeWords('=?hex?Q?3c7363726970743e?=')).to.equal('3c7363726970743e');
+            expect(libmime.decodeWords('=?base64?Q?PHNjcmlwdD4=3D?=')).to.equal('PHNjcmlwdD4=');
         });
     });
 
@@ -644,6 +674,29 @@ describe('libmime', () => {
             expect(libmime.parseHeaderValue("attachment; filename*0*=ut?f8''abc").params).to.deep.equal({ filename: 'abc' });
         });
 
+        it('should decode an rfc2231 value once and name it in decodedParams', () => {
+            // percent-encoding an encoded word must not get it decoded a second time
+            let parsed = libmime.parseHeaderValue("attachment; filename*=utf-8''invoice%3D%3Futf-8%3FQ%3F%3D2Eexe%3F%3D");
+            expect(parsed.params.filename).to.equal('invoice=?utf-8?Q?=2Eexe?=');
+            expect(parsed.decodedParams).to.deep.equal(['filename']);
+
+            // the segments of a continuation without a charset are decoded as mime words, once
+            parsed = libmime.parseHeaderValue('attachment; filename*0="=?utf-8?Q?=3D=3Futf-8=3FQ=3F=3D2Eexe=3F=3D?="; filename*1=".txt"; x=y');
+            expect(parsed.params).to.deep.equal({ filename: '=?utf-8?Q?=2Eexe?=.txt', x: 'y' });
+            expect(parsed.decodedParams).to.deep.equal(['filename']);
+
+            // a plain param is returned as is, decoding it is up to the caller
+            parsed = libmime.parseHeaderValue('attachment; filename="=?utf-8?Q?=2Eexe?="');
+            expect(parsed.params.filename).to.equal('=?utf-8?Q?=2Eexe?=');
+            expect(parsed.decodedParams).to.deep.equal([]);
+        });
+
+        it('should keep decodedParams out of the enumerable result', () => {
+            let parsed = libmime.parseHeaderValue("attachment; filename*=utf-8''a.txt");
+            expect(Object.keys(parsed)).to.deep.equal(['value', 'params']);
+            expect(JSON.parse(JSON.stringify(parsed))).to.deep.equal({ value: 'attachment', params: { filename: 'a.txt' } });
+        });
+
         it('should not pollute Object.prototype via __proto__ param keys', () => {
             // covers every code path that stores a parsed param
             let cases = [
@@ -994,9 +1047,27 @@ describe('libmime', () => {
                 // invalid UTF-8 is replaced, not thrown
                 expect(charset.decode(Buffer.from([0x74, 0xf5]), 'x-unknown-charset')).to.equal('t\ufffd');
             });
+
+            it('should treat the utf-7, base64 and hex codecs as unknown charsets', () => {
+                expect(charset.decode(Buffer.from('+ADw-script+AD4-'), 'utf-7')).to.equal('+ADw-script+AD4-');
+                expect(charset.decode(Buffer.from('+ADw-script+AD4-'), 'UTF7')).to.equal('+ADw-script+AD4-');
+                // the year suffix iconv-lite strips off a name must not get around the check
+                expect(charset.decode(Buffer.from('+ADw-script+AD4-'), 'utf-7:1998')).to.equal('+ADw-script+AD4-');
+                expect(charset.decode(Buffer.from('&ADw-script&AD4-'), 'utf-7-imap')).to.equal('&ADw-script&AD4-');
+                expect(charset.decode(Buffer.from('3c3e'), 'hex')).to.equal('3c3e');
+                expect(charset.decode(Buffer.from('PD4='), 'base64')).to.equal('PD4=');
+            });
         });
 
         describe('#convert', () => {
+            it('should only pass a Buffer through for an exact UTF-8 name', () => {
+                // a name that merely contains utf-8 is an unknown charset and gets the same fallback
+                let invalid = Buffer.from([0x74, 0xff]);
+                expect(charset.convert(invalid, 'utf-8')).to.equal(invalid);
+                expect(charset.convert(invalid, 'x-utf-8-mac')).to.deep.equal(charset.convert(invalid, 'x-unknown-charset'));
+                expect(charset.convert(invalid, 'x-utf-8-mac')).to.deep.equal(Buffer.from('t\ufffd'));
+            });
+
             it('should convert non UTF-8 to Buffer', () => {
                 let converted = Buffer.from([0xec, 0x8b, 0xa0]),
                     encoding = 'ks_c_5601-1987',
