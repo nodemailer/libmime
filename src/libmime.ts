@@ -60,6 +60,13 @@ export class Libmime {
         return typeof value === 'string' && !re.test(value);
     }
 
+    // A parameter value goes out as is only when it is plain text that does not look like an encoded
+    // word. Receivers decode encoded words found in parameter values (and libmime itself does so for
+    // unencoded continuations), so as plain text it would come back as something else
+    private isPlainParamValue(value: unknown): value is string {
+        return this.isPlainText(value, true) && !(value as string).includes('=?');
+    }
+
     /**
      * Checks if a multi line string containes lines longer than the selected value.
      *
@@ -517,7 +524,7 @@ export class Libmime {
             let value = params[key];
             // a parameter name is a token too and it is emitted without any quoting around it
             let param = key.replace(/[\x00-\x1f\x7f]/g, '');
-            if (typeof value !== 'string' || !this.isPlainText(value, true) || value.length >= 75) {
+            if (!this.isPlainParamValue(value) || value.length >= 75) {
                 this.buildHeaderParam(param, value, 50).forEach(encodedParam => {
                     if (!/[\s"\\;:/=(),<>@[\]?]|^[-']|'$/.test(encodedParam.value) || encodedParam.key.endsWith('*')) {
                         paramsArray.push(encodedParam.key + '=' + encodedParam.value);
@@ -775,7 +782,7 @@ export class Libmime {
         maxLength = maxLength || 50;
 
         // process ascii only text
-        if (this.isPlainText(data, true)) {
+        if (this.isPlainParamValue(data)) {
             // check if conversion is even needed
             if (encodedStr.length <= maxLength) {
                 return [
