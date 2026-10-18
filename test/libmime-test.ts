@@ -4,27 +4,7 @@ import { Buffer } from 'node:buffer';
 import libmime from '../src/libmime.js';
 import * as charset from '../src/charset.js';
 import { getCharsetName } from '../src/get-charset-name.js';
-
-// Best of a few runs in milliseconds, so a single GC pause does not decide a timing assertion
-function timeIt(fn: () => void): number {
-    let best = Infinity;
-    for (let i = 0; i < 3; i++) {
-        let start = process.hrtime.bigint();
-        fn();
-        best = Math.min(best, Number(process.hrtime.bigint() - start) / 1e6);
-    }
-    return best;
-}
-
-// Doubling the input of a linear algorithm roughly doubles the time, a quadratic one quadruples it.
-// The constant slack keeps tiny timings from failing on scheduler noise.
-function expectLinear<T>(build: (n: number) => T, run: (input: T) => unknown, n: number): void {
-    let small = build(n);
-    let large = build(n * 2);
-    let tSmall = timeIt(() => run(small));
-    let tLarge = timeIt(() => run(large));
-    assert.ok(tLarge < tSmall * 3 + 50, `n=${n}: ${tSmall.toFixed(1)}ms, n=${n * 2}: ${tLarge.toFixed(1)}ms`);
-}
+import { expectLinear } from './fixtures/timing.js';
 
 describe('libmime', () => {
     describe('#isPlainText', () => {
@@ -80,6 +60,10 @@ describe('libmime', () => {
     });
 
     describe('#encodeWords', () => {
+        it('should treat U+0080 as a char that needs encoding', () => {
+            assert.strictEqual(libmime.encodeWords('abc \u0080def', 'Q'), 'abc =?UTF-8?Q?=C2=80def?=');
+        });
+
         it('should encode Ascii range', () => {
             let input1 = 'метель" вьюга',
                 input2 = "метель'вьюга",
@@ -149,6 +133,16 @@ describe('libmime', () => {
     });
 
     describe('#decodeWords', () => {
+        it('should decode lower case hex escapes in Q encoding', () => {
+            assert.strictEqual(libmime.decodeWords('=?utf-8?Q?=c3=a1?='), '\u00e1');
+        });
+
+        it('should keep an escape that is not two hex digits in Q encoding', () => {
+            assert.strictEqual(libmime.decodeWords('=?utf-8?Q?a=zz?='), 'a=zz');
+            assert.strictEqual(libmime.decodeWords('=?utf-8?Q?a=4z?='), 'a=4z');
+            assert.strictEqual(libmime.decodeWords('=?utf-8?Q?a=4?='), 'a=4');
+        });
+
         it('should decode', () => {
             assert.strictEqual('Hello: See on õhin test', libmime.decodeWords('Hello: =?UTF-8?q?See_on_=C3=B5hin_test?='));
             assert.strictEqual('See on õhin test', libmime.decodeWords('=?UTF-8?q?See_on_=C3=B5hin_test?='));
@@ -254,6 +248,14 @@ describe('libmime', () => {
     });
 
     describe('#buildHeaderParam', () => {
+        it('should encode a value that looks like an encoded word', () => {
+            assert.deepStrictEqual(libmime.buildHeaderParam('filename', 'a=?b', 50), [{ key: 'filename*0*', value: "utf-8''a%3D%3Fb" }]);
+        });
+
+        it('should not split a plain value of exactly maxLength', () => {
+            assert.deepStrictEqual(libmime.buildHeaderParam('title', 'a'.repeat(50), 50), [{ key: 'title', value: 'a'.repeat(50) }]);
+        });
+
         it('should return unmodified', () => {
             assert.deepStrictEqual(
                 [
@@ -736,6 +738,12 @@ describe('libmime', () => {
     });
 
     describe('#_buildHeaderValue', () => {
+        it('should encode a parameter value that looks like an encoded word', () => {
+            let built = libmime.buildHeaderValue({ value: 'attachment', params: { filename: '=?utf-8?Q?evil?=.txt' } });
+            assert.strictEqual(built, "attachment; filename*0*=utf-8''%3D%3Futf-8%3FQ%3Fevil%3F%3D.txt");
+            assert.deepStrictEqual(libmime.parseHeaderValue(built).params, { filename: '=?utf-8?Q?evil?=.txt' });
+        });
+
         it('should build header value', () => {
             assert.strictEqual(
                 libmime.buildHeaderValue({
@@ -1059,6 +1067,11 @@ describe('libmime', () => {
                 assert.strictEqual(charset.decode(encoded, 'ISO-2022-JP'), '\u65e5\u672c\u8a9e Japanese\r\nline 2');
             });
 
+            it('should decode an ISO-2022-JP string the same as a Buffer', () => {
+                let jis = '\x1b$B$3$s$K$A$O\x1b(B';
+                assert.strictEqual(charset.decode(jis as unknown as Buffer, 'ISO-2022-JP'), '\u3053\u3093\u306b\u3061\u306f');
+            });
+
             it('should decode NEC row 13 characters', () => {
                 // circled digit one and numero sign live in the NEC special area (JIS row 13, CP932 0x87xx),
                 // which plain JIS X 0208 decoders map to nothing
@@ -1201,6 +1214,12 @@ describe('libmime', () => {
     });
 
     describe('#splitMimeEncodedString', () => {
+        it('should only walk back over UTF-8 continuation bytes', () => {
+            // =7F is ASCII and =C2 starts a sequence, neither may pull the escape in front of it along
+            assert.deepStrictEqual(libmime.splitMimeEncodedString('abcdefghi=41=7F', 12), ['abcdefghi=41', '=7F']);
+            assert.deepStrictEqual(libmime.splitMimeEncodedString('abcdefghi=41=C2=A2', 12), ['abcdefghi=41', '=C2=A2']);
+        });
+
         it('should split plain text at maxlen', () => {
             assert.deepStrictEqual(libmime.splitMimeEncodedString('abcdefghijklmnop', 12), ['abcdefghijkl', 'mnop']);
         });

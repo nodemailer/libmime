@@ -58,7 +58,8 @@
         "prepare": "npm run build",
         "update": "rm -rf node_modules package-lock.json && ncu -u && npm install",
         "pretest:bun": "npm run build",
-        "test:bun": "bun test --timeout 60000 $(find ./test -name \"*-test.ts\")"
+        "test:bun": "bun test --timeout 60000 $(find ./test -name \"*-test.ts\")",
+        "test:mutation": "node scripts/mutation-test.js"
     },
     "dependencies": {
         "encoding-japanese": "2.4.0",
@@ -72,6 +73,7 @@
         "eslint": "10.13.0",
         "eslint-config-prettier": "10.1.8",
         "globals": "17.13.0",
+        "nodemailer": "10.1.6",
         "prettier": "3.9.10",
         "tsx": "4.23.15",
         "typescript": "6.0.3",
