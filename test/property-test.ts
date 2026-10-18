@@ -45,7 +45,7 @@ describe('Properties', () => {
                             assert.ok(word.length <= Math.max(maxLength, 24), at);
                             let decoded = libmime.decodeWords(word);
                             assert.ok(decoded.length > 0, at);
-                            assert.ok(!decoded.includes('�'), at);
+                            assert.ok(!decoded.includes('\ufffd'), at);
                         }
                     }
                 }
@@ -185,7 +185,7 @@ describe('Properties', () => {
                 for (let chunk of chunks) {
                     assert.ok(chunk.length > 0 && chunk.length <= maxlen, at);
                     assert.ok(!/[=][0-9A-F]?$/i.test(chunk), at);
-                    assert.ok(!libmime.decodeWords('=?UTF-8?Q?' + chunk + '?=').includes('�'), at);
+                    assert.ok(!libmime.decodeWords('=?UTF-8?Q?' + chunk + '?=').includes('\ufffd'), at);
                 }
             });
         });
@@ -231,7 +231,14 @@ describe('Properties', () => {
             });
         });
 
-        it('maps every byte of the single byte charsets the way TextDecoder does', () => {
+        // Older ICU builds (Node 20 and 22) ship single byte tables that differ from the WHATWG
+        // indexes in places, so TextDecoder is only used as the oracle where it matches them
+        const whatwgTables =
+            new TextDecoder('iso-8859-1').decode(Buffer.from([0x80])) === '\u20ac' &&
+            new TextDecoder('ibm866').decode(Buffer.from([0x1a])) === '\x1a' &&
+            new TextDecoder('windows-1253').decode(Buffer.from([0xaa])) === '\ufffd';
+
+        it('maps every byte of the single byte charsets the way TextDecoder does', { skip: !whatwgTables && 'TextDecoder tables differ from WHATWG' }, () => {
             // TextDecoder follows the WHATWG encoding standard, as browsers and webmail do. Where a
             // charset leaves a byte undefined, iconv-lite gives U+FFFD and WHATWG a C1 control
             let names = [
@@ -259,7 +266,7 @@ describe('Properties', () => {
                     let ours = charset.decode(buf, name);
                     let whatwg = decoder.decode(buf);
                     if (ours !== whatwg) {
-                        assert.ok(ours === '�' && /^[\x80-\x9f]$/.test(whatwg), `${name} byte ${byte.toString(16)}: ${show([ours, whatwg])}`);
+                        assert.ok(ours === '\ufffd' && /^[\x80-\x9f]$/.test(whatwg), `${name} byte ${byte.toString(16)}: ${show([ours, whatwg])}`);
                     }
                 }
             }

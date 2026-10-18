@@ -1345,13 +1345,13 @@ describe('libmime', () => {
             for (let maxLength of [13, 16, 19, 32]) {
                 let encoded = libmime.encodeWord(input, 'B', maxLength);
                 assert.strictEqual(libmime.decodeWords(encoded), input, String(maxLength));
-                assert.ok(!libmime.decodeWords(encoded).includes('�'), String(maxLength));
+                assert.ok(!libmime.decodeWords(encoded).includes('\ufffd'), String(maxLength));
             }
         });
 
         it('should not let an unpaired surrogate swallow the next char', () => {
             let encoded = libmime.encodeWord('a\ud800\u{1F600}b', 'B', 16);
-            assert.strictEqual(libmime.decodeWords(encoded), 'a�\u{1F600}b');
+            assert.strictEqual(libmime.decodeWords(encoded), 'a\ufffd\u{1F600}b');
         });
     });
 
@@ -1361,7 +1361,7 @@ describe('libmime', () => {
             assert.ok(!/[;=]\s*name|\\ud800|[\ud800-\udfff]/.test(built.replace(/^attachment; filename\*0\*=/, '')), built);
             let parsed = libmime.parseHeaderValue(built);
             assert.deepStrictEqual(Object.keys(parsed.params), ['filename']);
-            assert.strictEqual(parsed.params.filename, 'ä�;� name�=evil.exe');
+            assert.strictEqual(parsed.params.filename, 'ä\ufffd;\ufffd name\ufffd=evil.exe');
             assert.strictEqual(libmime.safeEncodeURIComponent('\ud800;"'), '%EF%BF%BD%3B%22');
         });
 
