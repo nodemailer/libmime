@@ -24,7 +24,6 @@ The other modules:
 - `src/charset.ts` - encode/decode between Buffers and strings via `iconv-lite`, with a Japanese-encoding fast path through `encoding-japanese`. `normalizeCharset` is the canonical place where charset aliases are resolved. Named exports plus a default export object of the same functions.
 - `src/charsets.ts` - the charset alias table (default export only). `src/get-charset-name.ts` lists the charsets natively supported by Node's ICU build (`iso-8859-16` is intentionally absent); not used internally, kept for `libmime/lib/get-charset-name` deep imports.
 - `src/mimetypes.ts` - MIME type to extension (`list`) and extension to MIME type (`extensions`) tables backing `detectExtension`/`detectMimeType`. Default fallback is `application/octet-stream` / `bin`. Keys are kept in alphabetical order.
-- `src/vendor-types.d.ts` - minimal declarations for `libqp` and `libbase64`, which ship no types.
 
 Production dependencies are intentionally minimal: `iconv-lite`, `encoding-japanese`, `libbase64`, `libqp`. QP and Base64 codecs are delegated to the sister `libqp` and `libbase64` packages, do not reimplement them here. Nodemailer has its own copy of the encoding functions (`../nodemailer/src/mime-funcs/`), a fix in one usually applies to the other.
 

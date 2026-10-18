@@ -81,10 +81,17 @@ describe('Built package', { timeout: 30 * 1000, skip: hasDist ? false : 'dist/ i
 
     it('keeps the production dependencies loadable with require()', () => {
         // EmailEngine bundles libmime with @yao-pkg/pkg, which follows the require() graph only
+        // and Node 22+ can require() an ES module too, so the file require() resolves to has to be
+        // CommonJS itself: a .cjs file, or a .js file whose nearest package.json is not type module
         const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
         for (const name of Object.keys(pkg.dependencies)) {
-            const depPkg = JSON.parse(fs.readFileSync(require.resolve(name + '/package.json'), 'utf8'));
-            assert.notStrictEqual(depPkg.type, 'module', name + ' is a pure ES module package');
+            const entry = require.resolve(name);
+            let dir = path.dirname(entry);
+            while (!fs.existsSync(path.join(dir, 'package.json'))) {
+                dir = path.dirname(dir);
+            }
+            const type = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')).type;
+            assert.ok(entry.endsWith('.cjs') || (entry.endsWith('.js') && type !== 'module'), name + ' resolves require() to an ES module: ' + entry);
             assert.ok(require(name), name);
         }
     });
