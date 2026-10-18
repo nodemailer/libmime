@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.5.1](https://github.com/nodemailer/libmime/compare/v5.5.0...v5.5.1) (2026-10-18)
+
+
+### Bug Fixes
+
+* **deps:** update libbase64 to 1.4.1 and libqp to 3.0.1 ([1d66699](https://github.com/nodemailer/libmime/commit/1d66699e80d953bd1f3279bd332684f4efeb4f71))
+* encode parameter values that look like encoded words ([e85b3fb](https://github.com/nodemailer/libmime/commit/e85b3fbfde3cafc466f0eb93589df5f5c4de53fe))
+
 ## [5.5.0](https://github.com/nodemailer/libmime/compare/v5.4.9...v5.5.0) (2026-10-18)
 
 
