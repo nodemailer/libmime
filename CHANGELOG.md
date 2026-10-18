@@ -1,5 +1,28 @@
 # Changelog
 
+## [5.5.0](https://github.com/nodemailer/libmime/compare/v5.4.9...v5.5.0) (2026-10-18)
+
+
+### Features
+
+* migrate to TypeScript with ES module and CommonJS builds ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+
+
+### Bug Fixes
+
+* base64 encode the chunks of a Buffer passed to encodeWord only once ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* correct the pyc and ccxml entries of the mime type table and add common modern types ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* drop control characters from header values and parameter names ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* encode control characters and DEL in header parameter values ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* encode unpaired surrogates in header parameters instead of leaving delimiters unencoded ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* keep astral characters outside the emoji block whole in B encoded words ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* mark every parameter continuation that holds percent escapes as encoded ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* quote empty header parameter values ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* refuse every iconv-lite alias of the utf-7, base64 and hex codecs as a charset ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* remove the space stuffing of format=flowed continuation lines ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* space-stuff the continuation lines encodeFlowed creates and trim spaces before hard line breaks ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+* stop splitMimeEncodedString from looping forever on malformed input ([a21884d](https://github.com/nodemailer/libmime/commit/a21884dfbcccc0a1a26300681275ea43fc93970c))
+
 ## [5.4.9](https://github.com/nodemailer/libmime/compare/v5.4.8...v5.4.9) (2026-10-16)
 
 
