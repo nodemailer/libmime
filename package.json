@@ -2,10 +2,35 @@
     "name": "libmime",
     "description": "Encode and decode quoted printable and base64 strings",
     "version": "5.4.9",
-    "main": "lib/libmime.js",
+    "type": "module",
+    "main": "./dist/cjs/libmime.js",
+    "types": "./dist/cjs/libmime.d.ts",
+    "typesVersions": {
+        "*": {
+            "lib/*": [
+                "dist/cjs/*.d.ts"
+            ]
+        }
+    },
+    "exports": {
+        ".": {
+            "import": "./dist/esm/libmime.js",
+            "require": "./dist/cjs/libmime.js"
+        },
+        "./lib/*.js": {
+            "import": "./dist/esm/*.js",
+            "require": "./dist/cjs/*.js"
+        },
+        "./lib/*": {
+            "import": "./dist/esm/*.js",
+            "require": "./dist/cjs/*.js"
+        },
+        "./package.json": "./package.json"
+    },
     "files": [
-        "lib",
-        "CHANGELOG.md"
+        "dist",
+        "CHANGELOG.md",
+        "SECURITY.md"
     ],
     "homepage": "https://github.com/nodemailer/libmime",
     "repository": {
@@ -20,8 +45,20 @@
     ],
     "author": "Andris Reinman <andris@kreata.ee>",
     "scripts": {
-        "test": "grunt",
-        "update": "rm -rf node_modules package-lock.json && ncu -u && npm install"
+        "build": "node scripts/build.js",
+        "typecheck": "tsc -p tsconfig.json",
+        "pretest": "npm run build",
+        "test": "node --import tsx --test --test-concurrency=1 $(find test -name \"*-test.ts\")",
+        "pretest:coverage": "npm run build",
+        "test:coverage": "c8 node --import tsx --test --test-concurrency=1 $(find test -name \"*-test.ts\")",
+        "format": "prettier --write \"**/*.{js,cjs,ts,json,md,yml,yaml}\"",
+        "format:check": "prettier --check \"**/*.{js,cjs,ts,json,md,yml,yaml}\"",
+        "lint": "npm run typecheck && eslint .",
+        "lint:fix": "eslint . --fix",
+        "prepare": "npm run build",
+        "update": "rm -rf node_modules package-lock.json && ncu -u && npm install",
+        "pretest:bun": "npm run build",
+        "test:bun": "bun test --timeout 60000 $(find ./test -name \"*-test.ts\")"
     },
     "dependencies": {
         "encoding-japanese": "2.4.0",
@@ -30,13 +67,17 @@
         "libqp": "2.1.3"
     },
     "devDependencies": {
-        "chai": "4.4.1",
-        "eslint-config-nodemailer": "1.2.0",
+        "@types/node": "20.19.43",
+        "c8": "12.0.0",
+        "eslint": "10.13.0",
         "eslint-config-prettier": "10.1.8",
-        "grunt": "1.6.3",
-        "grunt-cli": "1.5.0",
-        "grunt-eslint": "24.3.0",
-        "grunt-mocha-test": "0.13.3",
-        "mocha": "11.8.0"
+        "globals": "17.13.0",
+        "prettier": "3.9.10",
+        "tsx": "4.23.15",
+        "typescript": "6.0.3",
+        "typescript-eslint": "8.71.2"
+    },
+    "engines": {
+        "node": ">=20.0.0"
     }
 }

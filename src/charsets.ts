@@ -1,8 +1,6 @@
-/* eslint quote-props: 0*/
+// Charset name aliases, keyed by the lowercased alias, mapped to the canonical name
 
-'use strict';
-
-module.exports = {
+const charsets: Record<string, string> = {
     '866': 'IBM866',
     'unicode-1-1-utf-8': 'UTF-8',
     'utf-8': 'UTF-8',
@@ -210,3 +208,5 @@ module.exports = {
     'utf-16': 'UTF-16LE',
     'utf-16le': 'UTF-16LE'
 };
+
+export default charsets;

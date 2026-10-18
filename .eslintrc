@@ -1,7 +1,0 @@
-{
-    "rules": {
-        "indent": 0,
-        "no-prototype-builtins": 0
-    },
-    "extends": "nodemailer"
-}

@@ -1,11 +1,15 @@
-/* eslint no-control-regex: 0, no-div-regex: 0, quotes: 0 */
-'use strict';
+/* eslint no-div-regex: 0 */
 
-const { Buffer } = require('node:buffer');
-const libcharset = require('./charset');
-const libbase64 = require('libbase64');
-const libqp = require('libqp');
-const mimetypes = require('./mimetypes');
+import { Buffer } from 'node:buffer';
+import libbase64 from 'libbase64';
+import libqp from 'libqp';
+import * as libcharset from './charset.js';
+import * as mimetypes from './mimetypes.js';
+
+import type { HeaderLine, HeaderObject, HeaderParam, LibmimeConfig, ParsedHeaderValue, StructuredHeaderValue } from './types.js';
+import type * as types from './types.js';
+
+export type * from './types.js';
 
 const STAGE_KEY = 0x1001;
 const STAGE_VALUE = 0x1002;
@@ -13,7 +17,7 @@ const STAGE_VALUE = 0x1002;
 // Sets an own property on a plain object. A regular assignment with a
 // '__proto__' key would silently modify the object's prototype instead of
 // creating an own property, so it needs special handling.
-const setOwnProperty = (obj, key, value) => {
+const setOwnProperty = <T>(obj: Record<string, T>, key: string, value: T): void => {
     if (key === '__proto__') {
         Object.defineProperty(obj, key, {
             value,
@@ -26,38 +30,40 @@ const setOwnProperty = (obj, key, value) => {
     }
 };
 
-// Checks own properties only, as attacker controlled keys like '__proto__'
-// or 'toString' would otherwise resolve to inherited Object.prototype members.
-// NB! Not named hasOwnProperty, that would shadow the global builtin
-const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
-
 // Whitespace that separates the tokens of a header value. Kept as a char comparison,
 // a regex test would be run for every single char of every parsed header
-const isWSP = chr => chr === ' ' || chr === '\t' || chr === '\r' || chr === '\n' || chr === '\f' || chr === '\v';
+const isWSP = (chr: string): boolean => chr === ' ' || chr === '\t' || chr === '\r' || chr === '\n' || chr === '\f' || chr === '\v';
 
-class Libmime {
-    constructor(config) {
+export class Libmime {
+    config: LibmimeConfig;
+
+    constructor(config?: LibmimeConfig) {
         this.config = config || {};
     }
 
     /**
      * Checks if a value is plaintext string (uses only printable 7bit chars)
      *
+     * When isParam is set the value is destined for a header parameter, so HT, CR and LF
+     * are not plaintext either: a header parameter has no way to carry them. HT is a valid
+     * fold point, so folding and unfolding a header would rewrite it as a space, and CR/LF
+     * cannot appear in a header value at all. DEL is neither a token character nor qtext,
+     * so it can not be carried bare or quoted. Such values have to go through the rfc2231
+     * parameter continuation encoding instead, the same way non-ASCII text does.
+     *
      * @param {String} value String to be tested
+     * @param {Boolean} [isParam] Set to true if the value is a header parameter value
      * @returns {Boolean} true if it is a plaintext string
      */
-    isPlainText(value) {
-        if (typeof value !== 'string' || /[\x00-\x08\x0b\x0c\x0e-\x1f\u0080-\uFFFF]/.test(value)) {
-            return false;
-        } else {
-            return true;
-        }
+    isPlainText(value: unknown, isParam?: boolean): boolean {
+        let re = isParam ? /[\x00-\x1f\x7f\u0080-\uFFFF]/ : /[\x00-\x08\x0b\x0c\x0e-\x1f\u0080-\uFFFF]/;
+        return typeof value === 'string' && !re.test(value);
     }
 
     /**
      * Checks if a multi line string containes lines longer than the selected value.
      *
-     * Useful when detecting if a mail message needs any processing at all –
+     * Useful when detecting if a mail message needs any processing at all:
      * if only plaintext characters are used and lines are short, then there is
      * no need to encode the values in any way. If the value is plaintext but has
      * longer lines then allowed, then use format=flowed
@@ -66,7 +72,7 @@ class Libmime {
      * @param {Number} lineLength Max line length to check for
      * @returns {Boolean} Returns true if there is at least one line longer than lineLength chars
      */
-    hasLongerLines(str, lineLength) {
+    hasLongerLines(str: string, lineLength: number): boolean {
         return new RegExp('^.{' + (lineLength + 1) + ',}', 'm').test(str);
     }
 
@@ -77,20 +83,20 @@ class Libmime {
      * @param {Boolean} [delSp] If true, delete leading spaces (delsp=yes)
      * @return {String} Mime decoded string
      */
-    decodeFlowed(str, delSp) {
-        str = (str || '').toString();
+    decodeFlowed(input: unknown, delSp?: boolean): string {
+        let str = (input || '').toString();
 
         let lines = str.split(/\r?\n/);
 
-        let result = [];
+        let result: string[] = [];
 
         // The current paragraph is kept as a list of non-empty pieces and joined once when it
         // ends. Appending to one string and testing it with a regex on every line re-scans (and
         // flattens) the whole paragraph each time, which is quadratic on long soft-wrapped bodies.
-        let parts = null,
+        let parts: string[] = [],
             partsLength = 0;
 
-        let pushPart = part => {
+        let pushPart = (part: string) => {
             if (part) {
                 parts.push(part);
                 partsLength += part.length;
@@ -103,7 +109,7 @@ class Libmime {
             let line = lines[i];
 
             // the last piece is never empty, so it holds the last character of the paragraph
-            let last = parts !== null && parts.length ? parts[parts.length - 1] : '';
+            let last = parts.length ? parts[parts.length - 1] : '';
 
             // Lines never contain a line break, so a signature separator can only be the whole
             // paragraph being exactly "-- "
@@ -116,10 +122,15 @@ class Libmime {
                     parts.pop();
                     partsLength -= last.length;
                     pushPart(last.slice(0, -1));
+                    pushPart(line);
+                } else {
+                    // remove space stuffing of the continuation line, the stuffing of a paragraph's first
+                    // line is removed below. Without delsp the text is only wrapped after spaces, so a
+                    // leading space can only be stuffing (http://tools.ietf.org/html/rfc3676#section-4.4)
+                    pushPart(line.replace(/^ /, ''));
                 }
-                pushPart(line);
             } else {
-                if (parts !== null) {
+                if (i > 0) {
                     result.push(parts.join(''));
                 }
 
@@ -129,7 +140,7 @@ class Libmime {
             }
         }
 
-        if (parts !== null && partsLength) {
+        if (partsLength) {
             result.push(parts.join(''));
         }
 
@@ -146,20 +157,28 @@ class Libmime {
      * @param {Number} [lineLength=76] Maximum length of a line
      * @return {String} String with forced line breaks
      */
-    encodeFlowed(str, lineLength) {
+    encodeFlowed(str: string, lineLength?: number): string {
         lineLength = lineLength || 76;
 
-        let flowed = [];
+        // space stuffing http://tools.ietf.org/html/rfc3676#section-4.2
+        let stuff = (line: string) => line.replace(/^( |From|>)/i, ' $1');
+
+        let flowed: string[] = [];
         str.split(/\r?\n/).forEach(line => {
-            flowed.push(
-                this.foldLines(
-                    line
-                        // space stuffing http://tools.ietf.org/html/rfc3676#section-4.2
-                        .replace(/^( |From|>)/gim, ' $1'),
-                    lineLength,
-                    true
-                )
-            );
+            // A space in front of a hard line break would turn it into a soft one and the decoder would
+            // join the next line to this one, so trailing spaces are trimmed (rfc3676 section 4.2). The
+            // signature separator "-- " is the one line that keeps its trailing space
+            if (line !== '-- ') {
+                line = line.replace(/ +$/, '');
+            }
+
+            let folded = this.foldLines(stuff(line), lineLength, true).split('\r\n');
+            // the lines that folding starts need stuffing as much as the first one does,
+            // a continuation line that starts with ">" would be read as a quote
+            for (let i = 1; i < folded.length; i++) {
+                folded[i] = stuff(folded[i]);
+            }
+            flowed.push(folded.join('\r\n'));
         });
         return flowed.join('\r\n');
     }
@@ -172,11 +191,11 @@ class Libmime {
      * @param {Number} [maxLength=0] If set, split mime words into several chunks if needed
      * @return {String} Single or several mime words joined together
      */
-    encodeWord(data, mimeWordEncoding, maxLength) {
+    encodeWord(data: string | Buffer, mimeWordEncoding?: string, maxLength?: number): string {
         mimeWordEncoding = (mimeWordEncoding || 'Q').toString().toUpperCase().trim().charAt(0);
         maxLength = maxLength || 0;
 
-        let encodedStr;
+        let encodedStr = '';
         let toCharset = 'UTF-8';
 
         if (maxLength && maxLength > 7 + toCharset.length) {
@@ -194,7 +213,10 @@ class Libmime {
                 }
             });
         } else if (mimeWordEncoding === 'B') {
-            encodedStr = typeof data === 'string' ? data : libbase64.encode(data);
+            // the chunking loop below splits raw text and base64 encodes each part, so a
+            // Buffer goes in as its UTF-8 string: handing it the base64 of the whole input
+            // would encode the encoding itself and decode back to base64 text
+            encodedStr = typeof data === 'string' ? data : data.toString('utf-8');
             maxLength = maxLength ? Math.max(3, ((maxLength - (maxLength % 4)) / 4) * 3) : 0;
         }
 
@@ -203,19 +225,14 @@ class Libmime {
                 encodedStr = this.splitMimeEncodedString(encodedStr, maxLength).join('?= =?' + toCharset + '?' + mimeWordEncoding + '?');
             } else {
                 // RFC2047 6.3 (2) states that encoded-word must include an integral number of characters, so no chopping unicode sequences
-                let parts = [];
+                let parts: string[] = [];
                 let lpart = '';
-                for (let i = 0, len = encodedStr.length; i < len; i++) {
-                    let chr = encodedStr.charAt(i);
+                // iterating a string yields whole code points, a surrogate pair stays together and an
+                // unpaired surrogate comes on its own without swallowing the unit that follows it
+                for (let chr of encodedStr) {
                     // check if we can add this character to the existing string
                     // without breaking byte length limit
-
-                    if (/[\ud83c\ud83d\ud83e]/.test(chr) && i < len - 1) {
-                        // composite emoji byte, so add the next byte as well
-                        chr += encodedStr.charAt(++i);
-                    }
-
-                    if (Buffer.byteLength(lpart + chr) <= maxLength || i === 0) {
+                    if (Buffer.byteLength(lpart + chr) <= maxLength || !lpart) {
                         lpart += chr;
                     } else {
                         // we hit the length limit, so push the existing string and start over
@@ -237,7 +254,7 @@ class Libmime {
             encodedStr = libbase64.encode(data);
         }
 
-        return '=?' + toCharset + '?' + mimeWordEncoding + '?' + encodedStr + (encodedStr.substr(-2) === '?=' ? '' : '?=');
+        return '=?' + toCharset + '?' + mimeWordEncoding + '?' + encodedStr + (encodedStr.slice(-2) === '?=' ? '' : '?=');
     }
 
     /**
@@ -249,7 +266,7 @@ class Libmime {
      * @param {String} charset Charset name to normalize
      * @return {String} Canonical charset name
      */
-    normalizeCharset(charset) {
+    normalizeCharset(charset?: unknown): string {
         return libcharset.normalizeCharset(charset);
     }
 
@@ -262,18 +279,19 @@ class Libmime {
      * @param {String} str Encoded payload between the second `?` and the trailing `?=`
      * @return {String} Decoded unicode string
      */
-    decodeWord(charset, encoding, str) {
+    decodeWord(charset: string, encoding: string, str: string): string {
         // RFC2231 added language tag to the encoding
         // see: https://tools.ietf.org/html/rfc2231#section-5
         // this implementation silently ignores this tag
         let splitPos = charset.indexOf('*');
         if (splitPos >= 0) {
-            charset = charset.substr(0, splitPos);
+            charset = charset.substring(0, splitPos);
         }
         charset = libcharset.normalizeCharset(charset);
 
         encoding = encoding.toUpperCase();
 
+        let decoded: Buffer;
         if (encoding === 'Q') {
             str = str
                 // remove spaces between = and hex char, this might indicate invalidly applied line splitting
@@ -282,7 +300,7 @@ class Libmime {
                 .replace(/[_\s]/g, ' ');
 
             let buf = Buffer.from(str);
-            let bytes = [];
+            let bytes: number[] = [];
             for (let i = 0, len = buf.length; i < len; i++) {
                 let c = buf[i];
                 if (i <= len - 2 && c === 0x3d /* = */) {
@@ -297,16 +315,16 @@ class Libmime {
                 }
                 bytes.push(c);
             }
-            str = Buffer.from(bytes);
+            decoded = Buffer.from(bytes);
         } else if (encoding === 'B') {
             // libbase64 decodes input made of several padded segments segment by segment
-            str = libbase64.decode(str);
+            decoded = libbase64.decode(str);
         } else {
             // keep as is, convert Buffer to unicode string, assume utf8
-            str = Buffer.from(str);
+            decoded = Buffer.from(str);
         }
 
-        return libcharset.decode(str, charset);
+        return libcharset.decode(decoded, charset);
     }
 
     /**
@@ -318,28 +336,28 @@ class Libmime {
      * @param {String} [fromCharset='UTF-8'] Source character set
      * @return {String} String with possible mime words
      */
-    encodeWords(data, mimeWordEncoding, maxLength, fromCharset) {
+    encodeWords(data: string | Buffer, mimeWordEncoding?: string, maxLength?: number | string, fromCharset?: string): string {
         if (!fromCharset && typeof maxLength === 'string' && !maxLength.match(/^[0-9]+$/)) {
             fromCharset = maxLength;
             maxLength = undefined;
         }
 
-        maxLength = maxLength || 0;
+        let maxLineLength = Number(maxLength) || 0;
 
         let decodedValue = libcharset.decode(libcharset.convert(data || '', fromCharset));
-        let encodedValue;
+        let encodedValue: string;
 
         let firstMatch = decodedValue.match(/(?:^|\s)([^\s]*[\u0080-\uFFFF])/);
         if (!firstMatch) {
             return decodedValue;
         }
         let startIndex =
-            firstMatch.index +
+            firstMatch.index! +
             (
                 firstMatch[0].match(/[^\s]/) || {
                     index: 0
                 }
-            ).index;
+            ).index!;
 
         // The encoded part ends with the word that holds the last non ascii char. Found with a scan,
         // the regex that used to do this rescanned the rest of the word from every non ascii char in
@@ -352,9 +370,9 @@ class Libmime {
         let endIndex = wordEnd < 0 ? decodedValue.length : lastIndex + 1 + wordEnd;
 
         encodedValue =
-            (startIndex ? decodedValue.substr(0, startIndex) : '') +
-            this.encodeWord(decodedValue.substring(startIndex, endIndex), mimeWordEncoding || 'Q', maxLength) +
-            (endIndex < decodedValue.length ? decodedValue.substr(endIndex) : '');
+            (startIndex ? decodedValue.substring(0, startIndex) : '') +
+            this.encodeWord(decodedValue.substring(startIndex, endIndex), mimeWordEncoding || 'Q', maxLineLength) +
+            (endIndex < decodedValue.length ? decodedValue.slice(endIndex) : '');
 
         return encodedValue;
     }
@@ -365,12 +383,12 @@ class Libmime {
      * @param {String} str String including some mime words that will be decoded
      * @return {String} Decoded unicode string
      */
-    decodeWords(str) {
+    decodeWords(str: unknown): string {
         return (
             (str || '')
                 .toString()
                 // find base64 words that can be joined
-                .replace(/(=\?([^?]+)\?[Bb]\?[^?]*\?=)\s*(?==\?([^?]+)\?[Bb]\?[^?]*\?=)/g, (match, left, chLeft, chRight) => {
+                .replace(/(=\?([^?]+)\?[Bb]\?[^?]*\?=)\s*(?==\?([^?]+)\?[Bb]\?[^?]*\?=)/g, (match: string, left: string, chLeft: string, chRight: string) => {
                     // only mark b64 chunks to be joined if charsets match
                     if (libcharset.normalizeCharset(chLeft || '') === libcharset.normalizeCharset(chRight || '')) {
                         // set a joiner marker
@@ -379,7 +397,7 @@ class Libmime {
                     return match;
                 })
                 // find QP words that can be joined
-                .replace(/(=\?([^?]+)\?[Qq]\?[^?]*\?=)\s*(?==\?([^?]+)\?[Qq]\?[^?]*\?=)/g, (match, left, chLeft, chRight) => {
+                .replace(/(=\?([^?]+)\?[Qq]\?[^?]*\?=)\s*(?==\?([^?]+)\?[Qq]\?[^?]*\?=)/g, (match: string, left: string, chLeft: string, chRight: string) => {
                     // only mark QP chunks to be joined if charsets match
                     if (libcharset.normalizeCharset(chLeft || '') === libcharset.normalizeCharset(chRight || '')) {
                         // set a joiner marker
@@ -392,12 +410,17 @@ class Libmime {
                 // remove spaces between mime encoded words
                 .replace(/(=\?[^?]+\?[QqBb]\?[^?]*\?=)\s+(?==\?[^?]+\?[QqBb]\?[^?]*\?=)/g, '$1')
                 // decode words
-                .replace(/=\?([\w_\-*]+)\?([QqBb])\?([^?]*)\?=/g, (m, charset, encoding, text) => this.decodeWord(charset, encoding, text))
+                .replace(/=\?([\w_\-*]+)\?([QqBb])\?([^?]*)\?=/g, (_m: string, charset: string, encoding: string, text: string) =>
+                    this.decodeWord(charset, encoding, text)
+                )
         );
     }
 
-    getHex(c) {
-        if ((c >= 0x30 /* 0 */ && c <= 0x39) /* 9 */ || (c >= 0x61 /* a */ && c <= 0x66) /* f */ || (c >= 0x41 /* A */ && c <= 0x46) /* F */) {
+    getHex(c: number | undefined): string | false {
+        if (
+            c !== undefined &&
+            ((c >= 0x30 /* 0 */ && c <= 0x39) /* 9 */ || (c >= 0x61 /* a */ && c <= 0x66) /* f */ || (c >= 0x41 /* A */ && c <= 0x46)) /* F */
+        ) {
             return String.fromCharCode(c);
         }
         return false;
@@ -411,7 +434,7 @@ class Libmime {
      * @param {String} headerLine Single header line, might include linebreaks as well if folded
      * @return {Object} An object of {key, value}
      */
-    decodeHeader(headerLine) {
+    decodeHeader(headerLine: unknown): HeaderLine {
         let line = (headerLine || '')
                 .toString()
                 .replace(/(?:\r?\n|\r)[ \t]*/g, ' ')
@@ -433,12 +456,12 @@ class Libmime {
      * @param {String} headers Headers string
      * @return {Object} An object of headers, where header keys are object keys and every value is an Array of the values for that key
      */
-    decodeHeaders(headers) {
+    decodeHeaders(headers: string): HeaderObject {
         let lines = headers.split(/\r?\n|\r/),
-            headersObj = {},
-            header,
-            i,
-            len;
+            headersObj: HeaderObject = {},
+            header: HeaderLine,
+            i: number,
+            len: number;
 
         // Empty lines in front of the block are not part of any header, a caller might
         // include the line break that separates a mime part boundary from its headers
@@ -454,7 +477,7 @@ class Libmime {
 
         // unfold folded lines, a continuation line always starts with a space or a tab
         // Built in one forward pass, removing continuation lines with splice() is quadratic
-        let unfolded = [];
+        let unfolded: string[] = [];
         for (i = 0, len = lines.length; i < len; i++) {
             if (unfolded.length && /^[ \t]/.test(lines[i])) {
                 unfolded[unfolded.length - 1] += '\r\n' + lines[i];
@@ -466,7 +489,9 @@ class Libmime {
 
         for (i = 0, len = lines.length; i < len; i++) {
             header = this.decodeHeader(lines[i]);
-            if (!hasOwn(headersObj, header.key)) {
+            // own properties only, an attacker controlled key such as '__proto__' or 'toString' would
+            // otherwise resolve to an inherited Object.prototype member
+            if (!Object.hasOwn(headersObj, header.key)) {
                 setOwnProperty(headersObj, header.key, [header.value]);
             } else {
                 headersObj[header.key].push(header.value);
@@ -483,28 +508,38 @@ class Libmime {
      * @param {Object} structured Parsed header value
      * @return {String} joined header value
      */
-    buildHeaderValue(structured) {
-        let paramsArray = [];
+    buildHeaderValue(structured: StructuredHeaderValue): string {
+        let paramsArray: string[] = [];
+        let params = structured.params || {};
 
-        Object.keys(structured.params || {}).forEach(param => {
+        Object.keys(params).forEach(key => {
             // filename might include unicode characters so it is a special case
-            let value = structured.params[param];
-            if (!this.isPlainText(value) || value.length >= 75) {
+            let value = params[key];
+            // a parameter name is a token too and it is emitted without any quoting around it
+            let param = key.replace(/[\x00-\x1f\x7f]/g, '');
+            if (typeof value !== 'string' || !this.isPlainText(value, true) || value.length >= 75) {
                 this.buildHeaderParam(param, value, 50).forEach(encodedParam => {
-                    if (!/[\s"\\;:/=(),<>@[\]?]|^[-']|'$/.test(encodedParam.value) || encodedParam.key.substr(-1) === '*') {
+                    if (!/[\s"\\;:/=(),<>@[\]?]|^[-']|'$/.test(encodedParam.value) || encodedParam.key.endsWith('*')) {
                         paramsArray.push(encodedParam.key + '=' + encodedParam.value);
                     } else {
                         paramsArray.push(encodedParam.key + '=' + JSON.stringify(encodedParam.value));
                     }
                 });
-            } else if (/[\s'"\\;:/=(),<>@[\]?]|^-/.test(value)) {
+            } else if (!value.length || /[\s'"\\;:/=(),<>@[\]?]|^-/.test(value)) {
+                // a parameter value is a token or a quoted-string and a token is never empty, so
+                // a valueless parameter such as the 'flag' of 'multipart/mixed; flag; boundary=b'
+                // goes out as 'flag=""' rather than as the 'flag=' that parses as neither
                 paramsArray.push(param + '=' + JSON.stringify(value));
             } else {
                 paramsArray.push(param + '=' + value);
             }
         });
 
-        return structured.value + (paramsArray.length ? '; ' + paramsArray.join('; ') : '');
+        // the value ahead of the parameters is a token, it has no way to carry a control
+        // char or DEL and there is no quoting construct around it to escape one into
+        let value = typeof structured.value === 'string' ? structured.value.replace(/[\x00-\x1f\x7f]/g, '') : structured.value;
+
+        return value + (paramsArray.length ? '; ' + paramsArray.join('; ') : '');
     }
 
     /**
@@ -526,11 +561,11 @@ class Libmime {
      * @param {String} str Header value
      * @return {Object} Header value as a parsed structure
      */
-    parseHeaderValue(str) {
+    parseHeaderValue(str: string): ParsedHeaderValue {
         let response = {
-            value: false,
+            value: '',
             params: {}
-        };
+        } as ParsedHeaderValue;
 
         // names of the params assembled from rfc2231 segments, see the continuation handling below.
         // Non-enumerable, so the {value, params} shape callers serialize and compare stays as it is
@@ -541,7 +576,7 @@ class Libmime {
             configurable: true
         });
 
-        let key = false;
+        let key: string | false = false;
         let value = '';
         // Length of the significant part of `value`. Whitespace outside of quotes is
         // not part of the value, while whitespace inside quotes is (rfc2045 section 5.1)
@@ -550,7 +585,7 @@ class Libmime {
 
         let quote = false;
         let escaped = false;
-        let chr;
+        let chr: string;
 
         // Stores the collected value, either as the default value, as the value for the
         // current key, or as a key that has no value at all. Runs once per parameter
@@ -629,17 +664,17 @@ class Libmime {
 
         // Collect the segments of every continuation parameter. These are kept out of
         // response.params so that a half assembled value can not leak into the result
-        let continuations = new Map();
+        let continuations = new Map<string, { charset: string | false; values: { nr: number; value: string }[] }>();
 
         for (let key of Object.keys(response.params)) {
-            let match = key.match(/\*((\d+)\*?)?$/);
+            let match: RegExpMatchArray | null = key.match(/\*((\d+)\*?)?$/);
 
             if (!match) {
                 // nothing to do here, does not seem like a continuation param
                 continue;
             }
 
-            let actualKey = key.substr(0, match.index).toLowerCase();
+            let actualKey = key.substring(0, match.index).toLowerCase();
             let nr = Number(match[2]) || 0;
             let value = response.params[key];
 
@@ -657,7 +692,7 @@ class Libmime {
 
             if (nr === 0 && match[0].charAt(match[0].length - 1) === '*' && (match = value.match(/^([^']*)'[^']*'(.*)$/))) {
                 continuation.charset = match[1] || 'utf-8';
-                value = match[2];
+                value = match[2]!;
             }
 
             continuation.values.push({ nr, value });
@@ -722,26 +757,25 @@ class Libmime {
      * @param {String} [fromCharset='UTF-8'] Source character set
      * @return {Array} A list of encoded keys and headers
      */
-    buildHeaderParam(key, data, maxLength, fromCharset) {
-        let list = [];
+    buildHeaderParam(key: string, data: unknown, maxLength?: number, fromCharset?: string): HeaderParam[] {
+        let list: { line: string; encoded?: boolean }[] = [];
 
         if (typeof data !== 'string' && !Buffer.isBuffer(data)) {
             // documented input is a string or a Buffer, normalize anything else
             data = data === null || data === undefined ? '' : data.toString();
         }
 
-        let encodedStr = typeof data === 'string' ? data : libcharset.decode(data, fromCharset);
-        let encodedStrArr;
-        let chr, ord;
-        let line;
+        let encodedStr: string | string[] = typeof data === 'string' ? data : libcharset.decode(data as Buffer, fromCharset);
+        let chr: string;
+        let line: string;
         let startPos = 0;
         let isEncoded = false;
-        let i, len;
+        let i: number, len: number;
 
         maxLength = maxLength || 50;
 
         // process ascii only text
-        if (this.isPlainText(data)) {
+        if (this.isPlainText(data, true)) {
             // check if conversion is even needed
             if (encodedStr.length <= maxLength) {
                 return [
@@ -766,20 +800,9 @@ class Libmime {
             }
         } else {
             if (/[\uD800-\uDBFF]/.test(encodedStr)) {
-                // string containts surrogate pairs, so normalize it to an array of bytes
-                encodedStrArr = [];
-                for (i = 0, len = encodedStr.length; i < len; i++) {
-                    chr = encodedStr.charAt(i);
-                    ord = chr.charCodeAt(0);
-                    if (ord >= 0xd800 && ord <= 0xdbff && i < len - 1) {
-                        chr += encodedStr.charAt(i + 1);
-                        encodedStrArr.push(chr);
-                        i++;
-                    } else {
-                        encodedStrArr.push(chr);
-                    }
-                }
-                encodedStr = encodedStrArr;
+                // string contains surrogate pairs, so split it into code points. An unpaired
+                // surrogate comes on its own and does not tear apart a valid pair following it
+                encodedStr = Array.from(encodedStr);
             }
 
             // first line includes the charset and language info and needs to be encoded
@@ -809,8 +832,11 @@ class Libmime {
                                 line,
                                 encoded: isEncoded
                             });
+                            // the line we start here holds an encoded char, so it has to be
+                            // flagged as one. Otherwise it gets an unstarred continuation key
+                            // and a receiver reads the percent escapes as literal text
                             line = '';
-                            startPos = i - 1;
+                            isEncoded = true;
                         } else {
                             isEncoded = true;
                             i = startPos;
@@ -862,9 +888,9 @@ class Libmime {
      * @param {String} mimeType Content type to be checked for
      * @return {String} File extension
      */
-    detectExtension(mimeType) {
-        mimeType = (mimeType || '').toString().toLowerCase().replace(/\s/g, '');
-        if (!hasOwn(mimetypes.list, mimeType)) {
+    detectExtension(input: unknown): string {
+        let mimeType = (input || '').toString().toLowerCase().replace(/\s/g, '');
+        if (!Object.hasOwn(mimetypes.list, mimeType)) {
             return 'bin';
         }
 
@@ -892,10 +918,10 @@ class Libmime {
      * @param {String} extension Extension (or filename) to be checked for
      * @return {String} Content type
      */
-    detectMimeType(extension) {
-        extension = (extension || '').toString().toLowerCase().replace(/\s/g, '').replace(/^\./g, '').split('.').pop();
+    detectMimeType(input: unknown): string {
+        let extension = (input || '').toString().toLowerCase().replace(/\s/g, '').replace(/^\./g, '').split('.').pop() || '';
 
-        if (!hasOwn(mimetypes.extensions, extension)) {
+        if (!Object.hasOwn(mimetypes.extensions, extension)) {
             return 'application/octet-stream';
         }
 
@@ -903,7 +929,7 @@ class Libmime {
             return mimetypes.extensions[extension];
         }
 
-        let mimeParts;
+        let mimeParts: string[];
 
         // search for name match
         for (let i = 0, len = mimetypes.extensions[extension].length; i < len; i++) {
@@ -926,18 +952,18 @@ class Libmime {
      * @param {Boolean} afterSpace If true, leave a space in the end of a line
      * @return {String} String with folded lines
      */
-    foldLines(str, lineLength, afterSpace) {
-        str = (str || '').toString();
+    foldLines(input: unknown, lineLength?: number, afterSpace?: boolean): string {
+        let str = (input || '').toString();
         lineLength = lineLength || 76;
 
         let pos = 0,
             len = str.length,
             result = '',
-            line,
-            match;
+            line: string,
+            match: RegExpMatchArray | null;
 
         while (pos < len) {
-            line = str.substr(pos, lineLength);
+            line = str.substring(pos, pos + Math.max(lineLength, 0));
             if (line.length < lineLength) {
                 result += line;
                 break;
@@ -948,9 +974,9 @@ class Libmime {
                 pos += line.length;
                 continue;
             } else if ((match = line.match(/(\s+)[^\s]*$/)) && match[0].length - (afterSpace ? (match[1] || '').length : 0) < line.length) {
-                line = line.substr(0, line.length - (match[0].length - (afterSpace ? (match[1] || '').length : 0)));
-            } else if ((match = str.substr(pos + line.length).match(/^[^\s]+(\s*)/))) {
-                line = line + match[0].substr(0, match[0].length - (!afterSpace ? (match[1] || '').length : 0));
+                line = line.substring(0, line.length - (match[0].length - (afterSpace ? (match[1] || '').length : 0)));
+            } else if ((match = str.slice(pos + line.length).match(/^[^\s]+(\s*)/))) {
+                line = line + match[0].substring(0, match[0].length - (!afterSpace ? (match[1] || '').length : 0));
             }
 
             result += line;
@@ -970,48 +996,59 @@ class Libmime {
      * @param {Number} maxlen Maximum length of characters for one part (minimum 12)
      * @return {Array} Split string
      */
-    splitMimeEncodedString(str, maxlen) {
-        let curLine,
-            match,
-            chr,
-            done,
-            lines = [];
+    splitMimeEncodedString(str: string, maxlen?: number): string[] {
+        let curLine: string,
+            fallbackLine: string,
+            match: RegExpMatchArray | null,
+            chr: number,
+            done: boolean,
+            lines: string[] = [];
 
         // require at least 12 symbols to fit possible 4 octet UTF-8 sequences
         maxlen = Math.max(maxlen || 0, 12);
 
         while (str.length) {
-            curLine = str.substr(0, maxlen);
+            curLine = str.substring(0, maxlen);
 
             // move incomplete escaped char back to main
             if ((match = curLine.match(/[=][0-9A-F]?$/i))) {
-                curLine = curLine.substr(0, match.index);
+                curLine = curLine.substring(0, match.index);
             }
 
+            // Malformed input (a run of stray UTF-8 continuation bytes, or a dangling "=" at the
+            // end) has no split point that keeps a character sequence whole, so the loop below
+            // walks back to an empty line looking for one. An empty line never consumes anything
+            // and would loop forever, so keep the widest chunk that at least does not cut a "=XX"
+            // escape in half, or the rest of the string when there is not even that
+            fallbackLine = curLine.length ? curLine : str.substring(0, maxlen);
+
             done = false;
-            while (!done) {
+            while (!done && curLine.length) {
                 done = true;
                 // check if not middle of a unicode char sequence
-                if ((match = str.substr(curLine.length).match(/^[=]([0-9A-F]{2})/i))) {
+                if ((match = str.slice(curLine.length).match(/^[=]([0-9A-F]{2})/i))) {
                     chr = parseInt(match[1], 16);
-                    // invalid sequence, move one char back anc recheck
-                    if (chr < 0xc2 && chr > 0x7f) {
-                        curLine = curLine.substr(0, curLine.length - 3);
+                    // invalid sequence, move one escaped char back and recheck. Only over a whole
+                    // "=XX" escape, a plain char in front of a stray continuation byte ends the walk
+                    if (chr < 0xc2 && chr > 0x7f && /=[0-9A-F]{2}$/i.test(curLine)) {
+                        curLine = curLine.substring(0, curLine.length - 3);
                         done = false;
                     }
                 }
             }
 
-            if (curLine.length) {
-                lines.push(curLine);
+            if (!curLine.length) {
+                curLine = fallbackLine;
             }
-            str = str.substr(curLine.length);
+
+            lines.push(curLine);
+            str = str.slice(curLine.length);
         }
 
         return lines;
     }
 
-    encodeURICharComponent(chr) {
+    encodeURICharComponent(chr: string): string {
         let res = '';
         // percent encoding is defined over bytes, so encode the char as UTF-8 first
         let buf = Buffer.from(chr, 'utf-8');
@@ -1024,15 +1061,18 @@ class Libmime {
         return res;
     }
 
-    safeEncodeURIComponent(str) {
-        str = (str || '').toString();
+    safeEncodeURIComponent(input: unknown): string {
+        let str = (input || '').toString();
 
         try {
             // might throw if we try to encode invalid sequences, eg. partial emoji
             str = encodeURIComponent(str);
-        } catch (E) {
-            // should never run
-            return str.replace(/[^\x00-\x1F *'()<>@,;:\\"[\]?=\u007F-\uFFFF]+/g, '');
+        } catch (_err) {
+            // an unpaired surrogate has no utf-8 representation, so run the value through a
+            // utf-8 roundtrip to get the same U+FFFD every other encoder here produces and
+            // retry. The value must never come back unencoded, it goes into a header parameter
+            // where a bare quote or semicolon would break it out into a parameter of its own
+            str = encodeURIComponent(Buffer.from(str, 'utf-8').toString('utf-8'));
         }
 
         // ensure chars that are not handled by encodeURICompent are converted as well
@@ -1040,5 +1080,29 @@ class Libmime {
     }
 }
 
-module.exports = new Libmime();
-module.exports.Libmime = Libmime;
+/**
+ * The shared instance, the default export of the package. The class is attached to it as `Libmime`,
+ * so `require('libmime').Libmime` keeps working
+ */
+const libmime = new Libmime() as Libmime & { Libmime: typeof Libmime };
+libmime.Libmime = Libmime;
+
+type LibmimeInstance = Libmime;
+
+// The type names of the @types/libmime declarations, reachable through the default export
+// (`libmime.StructuredHeader`), and every other public type next to them. The CommonJS build
+// declares the module as `export = libmime` (see scripts/build.js), so these are the only way
+// a CommonJS consumer can name the types
+namespace libmime {
+    export type Libmime = LibmimeInstance;
+    export type HeaderLine = types.HeaderLine;
+    export type HeaderObject = types.HeaderObject;
+    export type HeaderParam = types.HeaderParam;
+    export type LibmimeConfig = types.LibmimeConfig;
+    export type MimeWordEncoding = types.MimeWordEncoding;
+    export type ParsedHeaderValue = types.ParsedHeaderValue;
+    export type StructuredHeader = types.StructuredHeader;
+    export type StructuredHeaderValue = types.StructuredHeaderValue;
+}
+
+export default libmime;

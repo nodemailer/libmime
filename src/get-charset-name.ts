@@ -1,8 +1,6 @@
-'use strict';
-
 // https://nodejs.org/api/util.html#encodings-supported-by-default-with-full-icu-data
 // NB! iso-8859-16 not supported
-const CHARSETS = [
+const CHARSETS: string[] = [
     '866',
     'ansi_x3.4-1968',
     'arabic',
@@ -218,10 +216,8 @@ const CHARSETS = [
 
 const CHARSET_MAP = new Map(CHARSETS.map(charset => [charset.replace(/[-_]+/g, ''), charset]));
 
-const getCharsetName = charset => {
+export const getCharsetName = (charset: unknown): string | false => {
     let charsetKey = (charset || '').toString().toLowerCase().trim().replace(/[-_]+/g, '');
 
     return CHARSET_MAP.get(charsetKey) || false;
 };
-
-module.exports.getCharsetName = getCharsetName;

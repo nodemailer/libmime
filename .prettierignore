@@ -1,0 +1,6 @@
+node_modules
+coverage
+dist
+package-lock.json
+CHANGELOG.md
+.github/VULNERABILITY_REPORT.yml

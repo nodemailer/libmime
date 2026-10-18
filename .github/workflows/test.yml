@@ -4,18 +4,51 @@ on:
     push:
     pull_request:
 
+permissions:
+    contents: read
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
     test:
+        name: Test (Node ${{ matrix.node }})
+        timeout-minutes: 15
         strategy:
             matrix:
-                node: [18, 20, 22, 24]
+                node: [20.x, 22.x, 24.x, 26.x]
                 os: [ubuntu-latest]
         runs-on: ${{ matrix.os }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
             - name: Use Node.js ${{ matrix.node }}
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
                   node-version: ${{ matrix.node }}
             - run: npm install
+            - run: npm run lint
+            - run: npm run format:check
             - run: npm test
+              if: matrix.node != '24.x'
+            # One matrix entry runs the suite under c8, which enforces the thresholds in .c8rc.json
+            - run: npm run test:coverage
+              if: matrix.node == '24.x'
+
+    # The library is used from Bun as well: the ES module build and the same test
+    # suite are run under the latest Bun release
+    bun:
+        name: Test (Bun latest)
+        timeout-minutes: 15
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - name: Use Node.js 24.x
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24.x
+            - uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+            - run: npm install
+            - run: npm run test:bun
