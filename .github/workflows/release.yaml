@@ -13,21 +13,21 @@ jobs:
     release-please:
         runs-on: ubuntu-latest
         steps:
-            - uses: google-github-actions/release-please-action@v3
+            # Options live in release-please-config.json (tags stay "vX.Y.Z", no component prefix)
+            # and the current version in .release-please-manifest.json
+            - uses: googleapis/release-please-action@v5
               id: release
-              with:
-                  release-type: node
-                  package-name: ${{vars.NPM_MODULE_NAME}}
-                  pull-request-title-pattern: 'chore${scope}: release ${version} [skip-ci]'
             # The logic below handles the npm publication:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               # these if statements ensure that a publication only occurs when
               # a new release is created:
               if: ${{ steps.release.outputs.release_created }}
-            - uses: actions/setup-node@v4
+            # npm trusted publishing (OIDC through id-token: write), no npm token is involved.
+            # registry-url is left out so setup-node writes no .npmrc expecting NODE_AUTH_TOKEN.
+            - uses: actions/setup-node@v7
               with:
                   node-version: 24
-                  registry-url: 'https://registry.npmjs.org'
+                  package-manager-cache: false
               if: ${{ steps.release.outputs.release_created }}
             - run: npm ci
               if: ${{ steps.release.outputs.release_created }}
