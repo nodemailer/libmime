@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm test` - builds `dist/` (`pretest`), then runs every `test/**/*-test.ts` with the Node.js test runner through `tsx`.
 - `npm run test:coverage` - the same suite under c8, fails below the thresholds in `.c8rc.json`. CI runs it on Node 24.
 - `npm run test:bun` - the same suite under Bun.
+- `npm run test:cjs` - builds `dist/`, then loads the CommonJS build and exercises the main API with `--no-experimental-require-module` (`test/cjs-smoke.cjs`). CI runs it on Node 22 and 24.
 - `npm run lint` - `tsc --noEmit` over `src/` and `test/`, then ESLint (`eslint.config.js`, type-aware rules on `src/`).
 - `npm run format` / `npm run format:check` - Prettier (`.prettierrc`).
 - `npm run build` - produces `dist/` (also runs on install and before publish through `prepare`).
@@ -32,7 +33,16 @@ Production dependencies are intentionally minimal: `iconv-lite`, `encoding-japan
 - `scripts/build.js` compiles `src/` twice (`tsconfig.esm.json`, `tsconfig.cjs.json`), writes a `package.json` with the module format into each output directory, and rewrites the CommonJS output so `require()` returns the old shapes: `require('libmime')` is the instance itself, `require('libmime/lib/charset')` and `require('libmime/lib/mimetypes')` are exports objects whose `.default` is the object itself, `require('libmime/lib/charsets')` is the table itself. It also rewrites `dist/cjs/libmime.d.ts` into the `export = libmime` layout. A module with a default export and named runtime exports fails the build unless listed in `scripts/build.js`.
 - `package.json` `exports` maps `.` to both builds and `./lib/*` to the matching file under `dist/`, so `require('libmime/lib/charset')` style deep imports keep resolving.
 - Every file must compile both ways: no `import.meta`, `require`, `module`, `__dirname`, top-level `await` or JSON imports under `src/`. Relative imports carry the `.js` extension. `erasableSyntaxOnly` is on (no enums, no namespaces with runtime code), `exactOptionalPropertyTypes` is on (optional properties are declared with `| undefined`).
-- EmailEngine bundles its dependencies with `@yao-pkg/pkg`, which only follows `require()`. Keep the CommonJS build, and never add a pure-ESM production dependency; after `npm run update` check that every dependency still loads with `require()` (`test/package/package-test.ts` checks this too).
+- Keep the CommonJS build, see Platform constraints below.
+
+## Platform constraints
+
+Both rules come from EmailEngine, which ships as a `@yao-pkg/pkg` binary: pkg snapshots a CommonJS module graph and cannot load ES modules.
+
+- **Node.js 20 is the minimum supported version.** Runtime code, tests and tooling must work on Node 20, 22 and 24 (`engines.node` is `>=20.0.0`, `@types/node` stays on the 20.x line).
+- **Everything that reaches runtime must be genuinely CommonJS-loadable.** `require()` of the CommonJS build and of every runtime dependency, transitive ones included, must work with `--no-experimental-require-module`. Node 22+ (and 20.19) can `require()` an ES module by default, which hides an ESM-only dependency until the pkg binary fails. A CommonJS entry that only wraps a dynamic `import()` does not count.
+- **Check:** `npm run test:cjs`. Run it after `npm run update` or any dependency change; CI runs it on Node 22 and 24.
+- Never add or upgrade to an ESM-only dependency. When a dependency's next major is ESM-only, pin the last CommonJS major in `.ncurc.cjs` (`reject`, or a `target` of `minor`/`patch`) with a comment giving the reason.
 
 ## Testing
 
