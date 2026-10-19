@@ -101,7 +101,10 @@ export class Libmime {
         // ends. Appending to one string and testing it with a regex on every line re-scans (and
         // flattens) the whole paragraph each time, which is quadratic on long soft-wrapped bodies.
         let parts: string[] = [],
-            partsLength = 0;
+            partsLength = 0,
+            // quote depth and the original quote prefix ("> ", ">>" ...) of the current paragraph
+            depth = 0,
+            prefix = '';
 
         let pushPart = (part: string) => {
             if (part) {
@@ -115,12 +118,22 @@ export class Libmime {
         for (let i = 0; i < lines.length; i++) {
             let line = lines[i];
 
+            // RFC 3676 section 4.5: a quoted line starts with one or more ">" characters and the one
+            // space directly after them is space-stuffing. The quote marker is not content, so a soft
+            // line break only joins lines of the same quote depth and drops the continuation's marker.
+            let lineDepth = 0;
+            while (line.charCodeAt(lineDepth) === 0x3e /* > */) {
+                lineDepth++;
+            }
+            let prefixLength = lineDepth && line.charCodeAt(lineDepth) === 0x20 /* space */ ? lineDepth + 1 : lineDepth;
+            let content = line.slice(prefixLength);
+
             // the last piece is never empty, so it holds the last character of the paragraph
             let last = parts.length ? parts[parts.length - 1] : '';
 
             // Lines never contain a line break, so a signature separator can only be the whole
-            // paragraph being exactly "-- "
-            let isSoftBreak = last.endsWith(' ') && !(partsLength === 3 && parts.join('') === '-- ');
+            // paragraph (without its quote marker) being exactly "-- "
+            let isSoftBreak = lineDepth === depth && last.endsWith(' ') && !(partsLength === 3 && parts.join('') === '-- ');
 
             if (isSoftBreak) {
                 if (delSp) {
@@ -129,26 +142,29 @@ export class Libmime {
                     parts.pop();
                     partsLength -= last.length;
                     pushPart(last.slice(0, -1));
-                    pushPart(line);
+                    pushPart(content);
                 } else {
                     // remove space stuffing of the continuation line, the stuffing of a paragraph's first
                     // line is removed below. Without delsp the text is only wrapped after spaces, so a
-                    // leading space can only be stuffing (http://tools.ietf.org/html/rfc3676#section-4.4)
-                    pushPart(line.replace(/^ /, ''));
+                    // leading space can only be stuffing (http://tools.ietf.org/html/rfc3676#section-4.4).
+                    // The stuffing of a quoted line is already part of its prefix.
+                    pushPart(lineDepth ? content : content.replace(/^ /, ''));
                 }
             } else {
                 if (i > 0) {
-                    result.push(parts.join(''));
+                    result.push(prefix + parts.join(''));
                 }
 
                 parts = [];
                 partsLength = 0;
-                pushPart(line);
+                depth = lineDepth;
+                prefix = line.slice(0, prefixLength);
+                pushPart(content);
             }
         }
 
-        if (partsLength) {
-            result.push(parts.join(''));
+        if (partsLength || prefix) {
+            result.push(prefix + parts.join(''));
         }
 
         // remove whitespace stuffing

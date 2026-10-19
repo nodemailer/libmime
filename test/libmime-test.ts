@@ -1024,6 +1024,41 @@ describe('libmime', () => {
             assert.strictEqual(libmime.decodeFlowed(build(3)), 'word word word word word word word word word end');
             assert.strictEqual(libmime.decodeFlowed(build(3), true), 'word word wordword word wordword word wordend');
         });
+
+        it('should join soft wrapped quoted lines without copying the continuation quote marker', () => {
+            assert.strictEqual(libmime.decodeFlowed('> quoted soft \r\n> continued\r\nnew'), '> quoted soft continued\nnew');
+            assert.strictEqual(libmime.decodeFlowed('>> deep soft \r\n>> more\r\n> shallow'), '>> deep soft more\n> shallow');
+            assert.strictEqual(libmime.decodeFlowed('>quoted soft \r\n>continued'), '>quoted soft continued');
+        });
+
+        it('should treat the space after a quote marker as stuffing, not a soft line break', () => {
+            // an empty quoted line written as "> " used to swallow the next quoted line as "> > Also, ..."
+            assert.strictEqual(libmime.decodeFlowed('> \r\n> Also, the delivery\r\n> the system.'), '> \n> Also, the delivery\n> the system.');
+            assert.strictEqual(libmime.decodeFlowed('> a\r\n>'), '> a\n>');
+        });
+
+        it('should never join lines across a change of quote depth', () => {
+            assert.strictEqual(libmime.decodeFlowed('a \r\n> b'), 'a \n> b');
+            assert.strictEqual(libmime.decodeFlowed('> a \r\nb'), '> a \nb');
+            assert.strictEqual(libmime.decodeFlowed('> a \r\n>> b'), '> a \n>> b');
+            // a space-stuffed ">" is text at depth 0, not a quote marker
+            assert.strictEqual(libmime.decodeFlowed('foo \r\n >bar'), 'foo >bar');
+        });
+
+        it('should apply delsp to quoted soft line breaks', () => {
+            assert.strictEqual(libmime.decodeFlowed('> split \r\n> word', true), '> splitword');
+        });
+
+        it('should treat a quoted "-- " line as a signature delimiter', () => {
+            assert.strictEqual(libmime.decodeFlowed('> -- \r\n> sig'), '> -- \n> sig');
+        });
+
+        it('should decode long quoted soft wrapped paragraphs in linear time', { timeout: 20000 }, () => {
+            let build = (n: number) => '>> word word \r\n'.repeat(n) + '>> end';
+            expectLinear(build, str => libmime.decodeFlowed(str), 25000);
+            expectLinear(build, str => libmime.decodeFlowed(str, true), 25000);
+            assert.strictEqual(libmime.decodeFlowed(build(2)), '>> word word word word end');
+        });
     });
 
     describe('#charset', () => {
