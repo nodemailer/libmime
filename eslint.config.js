@@ -25,6 +25,7 @@ export default defineConfig([
         rules: {
             // Error detection
             'for-direction': 'error',
+            'no-await-in-loop': 'error',
             'no-div-regex': 'error',
             eqeqeq: 'error',
             'dot-notation': 'error',
@@ -109,8 +110,7 @@ export default defineConfig([
             // Project preferences
             'prefer-const': 'off',
             '@typescript-eslint/no-explicit-any': 'off',
-            '@typescript-eslint/no-namespace': 'off',
-            '@typescript-eslint/no-this-alias': 'off'
+            '@typescript-eslint/no-namespace': 'off'
         }
     },
     {

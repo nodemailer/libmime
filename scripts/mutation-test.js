@@ -216,6 +216,8 @@ try {
                     let lines = original.split('\n');
                     lines[mutant.line - 1] = lines[mutant.line - 1].match(/^\s*/)[0] + mutant.to;
                     fs.writeFileSync(target, lines.join('\n'));
+                    // each worker owns one workspace and mutates it in place, its mutants have to run one at a time
+                    // eslint-disable-next-line no-await-in-loop
                     let passed = (await runTests(dir, UNIT_TESTS)) && (await runTests(dir, OTHER_TESTS));
                     fs.writeFileSync(target, original);
                     if (passed) {
