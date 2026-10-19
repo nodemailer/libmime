@@ -42,3 +42,29 @@ Production dependencies are intentionally minimal: `iconv-lite`, `encoding-japan
 ## Release flow
 
 Versioning and the changelog are managed by release-please via `.github/workflows/release.yaml`. Release commits look like `chore(master): release X.Y.Z [skip-ci]`. Do not bump `version` in `package.json` or edit `CHANGELOG.md` by hand; let the release PR do it. Use Conventional Commit prefixes (`fix:`, `feat:`, `chore:`, ...).
+
+## Conventions
+
+These mirror the conventions used across Postal Systems projects (see `../emailengine`).
+
+**Git commits**
+
+- Use Conventional Commits: `fix:` (patch release), `feat:` (minor release), and `chore:`/`build:`/`docs:`/`ci:`/`refactor:`/`style:`/`test:` for changes that should not trigger a release. release-please derives the version and changelog from these prefixes, so tooling changes never use `fix:` or `feat:`.
+- Do not list Claude or any AI assistant as a co-author or co-contributor in commit messages or PR descriptions (no `Co-Authored-By` trailer).
+- Append `[skip ci]` to commits that do not change runtime behavior (docs, comments, formatting) to avoid spending CI minutes. Never add it to a `fix:` or `feat:` commit, those must run so the release workflow triggers, and never to a commit that changes the tooling itself (lint, format, test or CI configuration), since CI is what validates it. GitHub reads the marker off the HEAD commit of a push, so when a push mixes the two the release-triggering commit has to be last.
+
+**Code and docs style**
+
+- No emojis anywhere in code or documentation, printable ASCII only.
+- Use a single hyphen-minus (`-`) as a dash in user-facing strings and docs. Never use double hyphens (`--`), em dashes, or en dashes.
+- Dependencies are pinned to exact versions (no `^` or `~`). `.ncurc.cjs` documents the version caps `npm run update` respects.
+
+**Before committing code changes**
+
+1. `npm run format` and `npm run lint`
+2. `npm test`
+3. For non-trivial changes, consider `/simplify` (quality cleanup) and `/security-review`: the header and encoded-word parsers handle untrusted input from email messages.
+
+**After pushing**
+
+- Check the workflow runs for the push (`gh run list --branch <branch>`) and report their status. CI installs with `npm ci`, so `package-lock.json` must stay in sync with `package.json`. If a run fails for an unrelated or infrastructure reason (checkout reporting "account suspended", HTTP 403, other auth errors), check <https://www.githubstatus.com/> for an active GitHub incident before assuming the change caused it.
