@@ -51,6 +51,8 @@
         "test": "node --import tsx --test --test-concurrency=1 $(find test -name \"*-test.ts\")",
         "pretest:coverage": "npm run build",
         "test:coverage": "c8 node --import tsx --test --test-concurrency=1 $(find test -name \"*-test.ts\")",
+        "pretest:cjs": "npm run build",
+        "test:cjs": "NODE_OPTIONS=--no-experimental-require-module node test/cjs-smoke.cjs",
         "format": "prettier --write \"**/*.{js,cjs,ts,json,md,yml,yaml}\"",
         "format:check": "prettier --check \"**/*.{js,cjs,ts,json,md,yml,yaml}\"",
         "lint": "npm run typecheck && eslint .",

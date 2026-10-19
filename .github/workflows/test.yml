@@ -35,6 +35,10 @@ jobs:
             # One matrix entry runs the suite under c8, which enforces the thresholds in .c8rc.json
             - run: npm run test:coverage
               if: matrix.node == '24.x'
+            # Node 22+ can require() an ES module, which would hide an ESM-only dependency from the
+            # suite. EmailEngine's pkg binary cannot load one, so the CommonJS build is loaded with that off
+            - run: npm run test:cjs
+              if: matrix.node == '22.x' || matrix.node == '24.x'
 
     # The library is used from Bun as well: the ES module build and the same test
     # suite are run under the latest Bun release
