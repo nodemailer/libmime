@@ -91,6 +91,53 @@ describe('Properties', () => {
                 assert.strictEqual(libmime.decodeWords(`=?${name}*en?B?${bytes.toString('base64')}?=`), expected, at);
             });
         });
+        it('decodes any Unicode text from words in the Unicode charsets, split anywhere', () => {
+            const classes = ['ascii', 'specials', 'latin', 'cjk', 'astral', 'combining'] as const;
+            // the charset label and how the text is written in it
+            const encodings: [string, (input: string) => Buffer][] = [
+                ['utf-8', input => Buffer.from(input)],
+                ['utf-16be', input => iconv.encode(input, 'utf-16be')],
+                ['utf-16le', input => iconv.encode(input, 'utf-16le')],
+                ['utf-16', input => iconv.encode(input, 'utf-16be', { addBOM: true })],
+                ['utf-16', input => iconv.encode(input, 'utf-16le', { addBOM: true })],
+                ['gb18030', input => iconv.encode(input, 'gb18030')]
+            ];
+            forEachCase(16, (rng, context) => {
+                let input = text(rng, 60, [...classes]);
+                let at = `${context} ${show(input)}`;
+
+                // what encodeWord makes of it, in UTF-8
+                for (let encoding of ['Q', 'B']) {
+                    let encoded = libmime.encodeWord(input, encoding, rng.pick([0, 20, 40, 75]));
+                    assert.strictEqual(libmime.decodeWords(encoded), input, `${at} ${show(encoded)}`);
+                }
+
+                // hand made words in other charsets, cut at any byte (Q) or at any multiple of
+                // three bytes (B, so that no word but the last is padded), mid-character included
+                let [name, write] = rng.pick(encodings);
+                let bytes = write(input);
+                let encoding = rng.pick(['Q', 'B']);
+                let step = encoding === 'B' ? 3 : 1;
+                let words: string[] = [];
+                for (let pos = 0; pos < bytes.length || !words.length;) {
+                    let next = Math.min(bytes.length, pos + step * rng.int(1, 8));
+                    let part = bytes.subarray(pos, next);
+                    let payload =
+                        encoding === 'B'
+                            ? part.toString('base64')
+                            : Array.from(part, byte =>
+                                  // printable ASCII goes as is now and then, the rest escaped
+                                  byte > 0x20 && byte < 0x7f && !'=?_'.includes(String.fromCharCode(byte)) && rng.chance(0.5)
+                                      ? String.fromCharCode(byte)
+                                      : '=' + byte.toString(16).toUpperCase().padStart(2, '0')
+                              ).join('');
+                    words.push(`=?${rng.chance(0.5) ? name : name.toUpperCase()}?${encoding}?${payload}?=`);
+                    pos = next;
+                }
+                let header = words.join(rng.pick([' ', '', '\r\n ', '\t']));
+                assert.strictEqual(libmime.decodeWords(header), input, `${at} ${show(header)}`);
+            });
+        });
     });
 
     describe('header values', () => {
