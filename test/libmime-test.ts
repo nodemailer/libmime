@@ -1142,6 +1142,23 @@ describe('libmime', () => {
                 assert.strictEqual(charset.decode(Buffer.from([0x48, 0x00, 0x69, 0x00]), 'utf-16le'), 'Hi');
             });
 
+            it('should decode the x-mac charsets', () => {
+                assert.strictEqual(charset.normalizeCharset('x-mac-cyrillic'), 'maccyrillic');
+                assert.strictEqual(charset.normalizeCharset('X-Mac-CE'), 'maccenteuro');
+                assert.strictEqual(charset.normalizeCharset('x-mac-ukrainian'), 'macukraine');
+                assert.strictEqual(charset.decode(Buffer.from([0x80, 0x8a]), 'x-mac-cyrillic'), '\u0410\u041a');
+                assert.strictEqual(charset.decode(Buffer.from([0x80, 0x8a, 0xa2]), 'x-mac-ce'), '\u00c4\u00e4\u0118');
+                // Mac OS Ukrainian differs from Mac OS Cyrillic in where it puts Ghe with upturn
+                assert.strictEqual(charset.decode(Buffer.from([0xa2, 0xb6]), 'x-mac-ukrainian'), '\u0490\u0491');
+                assert.strictEqual(libmime.decodeWords('=?x-mac-cyrillic?Q?=80=8A?='), '\u0410\u041a');
+            });
+
+            it('should decode Big5-HKSCS with the HKSCS table', () => {
+                assert.strictEqual(charset.normalizeCharset('big5-hkscs'), 'Big5-HKSCS');
+                // 0x8840 is only defined by HKSCS
+                assert.strictEqual(charset.decode(Buffer.from([0x88, 0x40, 0xa4, 0xa4]), 'big5-hkscs'), '\u31c0\u4e2d');
+            });
+
             it('should treat the utf-7, base64 and hex codecs as unknown charsets', () => {
                 assert.strictEqual(charset.decode(Buffer.from('+ADw-script+AD4-'), 'utf-7'), '+ADw-script+AD4-');
                 assert.strictEqual(charset.decode(Buffer.from('+ADw-script+AD4-'), 'UTF7'), '+ADw-script+AD4-');
