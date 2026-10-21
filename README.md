@@ -137,9 +137,11 @@ Parses a block of header lines. Does not decode mime words as every header might
 
 Return value is an object of headers, where header keys are object keys and values are arrays.
 
-    libmime.decodeHeaders(headers) → Object
+    libmime.decodeHeaders(headers[, options]) → Object
 
 - **headers** - Headers string
+- **options** - Optional options object
+    - **skipPrototypeKeys** - if `true`, headers named like an `Object.prototype` member (`__proto__`, `constructor`) are left out. By default they are kept as own properties of the result
 
 #### #parseHeaderValue
 

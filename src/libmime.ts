@@ -6,7 +6,7 @@ import libqp from 'libqp';
 import * as libcharset from './charset.js';
 import * as mimetypes from './mimetypes.js';
 
-import type { HeaderLine, HeaderObject, HeaderParam, LibmimeConfig, ParsedHeaderValue, StructuredHeaderValue } from './types.js';
+import type { DecodeHeadersOptions, HeaderLine, HeaderObject, HeaderParam, LibmimeConfig, ParsedHeaderValue, StructuredHeaderValue } from './types.js';
 import type * as types from './types.js';
 
 export type * from './types.js';
@@ -29,6 +29,10 @@ const setOwnProperty = <T>(obj: Record<string, T>, key: string, value: T): void 
         obj[key] = value;
     }
 };
+
+// Header names decodeHeaders() leaves out with the skipPrototypeKeys option. Keys are lowercased,
+// so of these only '__proto__' and 'constructor' can ever match
+const PROTOTYPE_KEYS = new Set(Object.getOwnPropertyNames(Object.prototype));
 
 // Whitespace that separates the tokens of a header value. Kept as a char comparison,
 // a regex test would be run for every single char of every parsed header
@@ -490,9 +494,11 @@ export class Libmime {
      * header might have its own rules (eg. formatted email addresses and such)
      *
      * @param {String} headers Headers string
+     * @param {Object} [options] Options
+     * @param {Boolean} [options.skipPrototypeKeys] Leave out headers named like an Object.prototype member, eg. `__proto__` and `constructor`
      * @return {Object} An object of headers, where header keys are object keys and every value is an Array of the values for that key
      */
-    decodeHeaders(headers: string): HeaderObject {
+    decodeHeaders(headers: string, options?: DecodeHeadersOptions): HeaderObject {
         let lines = headers.split(/\r?\n|\r/),
             headersObj: HeaderObject = {},
             header: HeaderLine,
@@ -525,6 +531,9 @@ export class Libmime {
 
         for (i = 0, len = lines.length; i < len; i++) {
             header = this.decodeHeader(lines[i]);
+            if (options?.skipPrototypeKeys && PROTOTYPE_KEYS.has(header.key)) {
+                continue;
+            }
             // own properties only, an attacker controlled key such as '__proto__' or 'toString' would
             // otherwise resolve to an inherited Object.prototype member
             if (!Object.hasOwn(headersObj, header.key)) {
@@ -1132,6 +1141,7 @@ type LibmimeInstance = Libmime;
 namespace libmime {
     export type Libmime = LibmimeInstance;
     export type DecodeStream = libcharset.DecodeStream;
+    export type DecodeHeadersOptions = types.DecodeHeadersOptions;
     export type HeaderLine = types.HeaderLine;
     export type HeaderObject = types.HeaderObject;
     export type HeaderParam = types.HeaderParam;

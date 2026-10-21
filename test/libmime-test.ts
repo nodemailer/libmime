@@ -470,6 +470,28 @@ describe('libmime', () => {
             assert.deepStrictEqual(headersObj.tostring, ['value4']);
         });
 
+        it('should leave out headers named like Object.prototype members when asked to', () => {
+            let block = '__proto__: value1\r\nConstructor: value2\r\nSubject: test\r\nToString: value3\r\nconstructor: value4\r\nHasOwnProperty: value5';
+            let headersObj = libmime.decodeHeaders(block, { skipPrototypeKeys: true });
+            assert.deepStrictEqual(Object.keys(headersObj), ['subject', 'tostring', 'hasownproperty']);
+            assert.ok(!Object.hasOwn(headersObj, '__proto__'));
+            assert.ok(!Object.hasOwn(headersObj, 'constructor'));
+            assert.strictEqual(Object.getPrototypeOf(headersObj), Object.prototype);
+            assert.deepStrictEqual(headersObj.subject, ['test']);
+            // a header that is only folded into another one is not a header of its own
+            assert.deepStrictEqual(libmime.decodeHeaders('Subject: a\r\n constructor: b', { skipPrototypeKeys: true }), { subject: ['a constructor: b'] });
+            // the default and an explicit false keep them as own properties
+            for (let options of [undefined, {}, { skipPrototypeKeys: false }]) {
+                assert.deepStrictEqual(Object.keys(libmime.decodeHeaders(block, options)), [
+                    '__proto__',
+                    'constructor',
+                    'subject',
+                    'tostring',
+                    'hasownproperty'
+                ]);
+            }
+        });
+
         it('should stop at the end of the header block', () => {
             // the body must not be folded into the last header
             assert.deepStrictEqual(libmime.decodeHeaders('A: 1\r\n\r\n B: 2'), { a: ['1'] });

@@ -117,6 +117,14 @@ describe('Fuzzing', () => {
                         assert.ok(!/[\r\n]/.test(value), at);
                     }
                 }
+                let skipped = libmime.decodeHeaders(block, { skipPrototypeKeys: true });
+                assert.ok(!Object.hasOwn(skipped, '__proto__') && !Object.hasOwn(skipped, 'constructor'), at);
+                // the same headers otherwise
+                assert.deepStrictEqual(
+                    skipped,
+                    Object.fromEntries(Object.entries(headers).filter(([key]) => key !== '__proto__' && key !== 'constructor')),
+                    at
+                );
                 assertPrototypesIntact();
             });
         });

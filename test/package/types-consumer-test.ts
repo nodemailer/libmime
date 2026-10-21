@@ -17,7 +17,7 @@ const tsc = require.resolve('typescript/bin/tsc');
 const esmConsumer = `
 import { Buffer } from 'node:buffer';
 import libmime, { Libmime } from 'libmime';
-import type { ParsedHeaderValue, StructuredHeader, StructuredHeaderValue, MimeWordEncoding, HeaderParam, HeaderLine, HeaderObject } from 'libmime';
+import type { ParsedHeaderValue, StructuredHeader, StructuredHeaderValue, MimeWordEncoding, HeaderParam, HeaderLine, HeaderObject, DecodeHeadersOptions } from 'libmime';
 import charset, { decode, normalizeCharset, createDecodeStream, DecodeStream } from 'libmime/lib/charset';
 import mimetypes, { extensions } from 'libmime/lib/mimetypes.js';
 import charsets from 'libmime/lib/charsets';
@@ -33,7 +33,8 @@ const custom: libmime.Libmime = new Libmime({ key: 'value' });
 const viaInstance: Libmime = new libmime.Libmime();
 const params: HeaderParam[] = custom.buildHeaderParam('filename', 'õ.txt', 20);
 const line: HeaderLine = viaInstance.decodeHeader('Subject: test');
-const headers: HeaderObject = libmime.decodeHeaders('Subject: test');
+const headersOptions: DecodeHeadersOptions = { skipPrototypeKeys: true };
+const headers: HeaderObject = libmime.decodeHeaders('Subject: test', headersOptions) && libmime.decodeHeaders('Subject: test');
 const value: StructuredHeaderValue = { value: 'attachment', params: { filename: 'a.txt', size: 12 } };
 const header: string = libmime.buildHeaderValue(value) + libmime.buildHeaderValue(structuredToo) + libmime.buildHeaderValue({ value: 'a', params: undefined });
 const text: string = charset.decode(Buffer.from('x'), 'latin1') + decode(Buffer.from('x')) + normalizeCharset('utf8') + charsets['utf8'];
@@ -65,8 +66,10 @@ const decoded: string = star.decodeWords('x') + defaultImport.decodeWords('x') +
 const name: string = charset.normalizeCharset('latin1') + charset.decode(Buffer.from('x'));
 const stream: libmime.DecodeStream = libmime.createDecodeStream('latin1');
 const supported: boolean = stream.supported && charset.createDecodeStream('utf-8').supported;
+const headersOptions: libmime.DecodeHeadersOptions = { skipPrototypeKeys: undefined };
+const headers: libmime.HeaderObject = libmime.decodeHeaders('Subject: test', headersOptions);
 
-export { structured, parsed, decoded, name, supported };
+export { structured, parsed, decoded, name, supported, headers };
 `;
 
 // A CommonJS JavaScript consumer checked with checkJs, the way @zone-eu/mailsplit uses the

@@ -22,6 +22,19 @@ export interface HeaderLine {
 export type HeaderObject = Record<string, string[]>;
 
 /**
+ * Options of decodeHeaders()
+ */
+export interface DecodeHeadersOptions {
+    /**
+     * Leave out the headers whose name is also the name of an Object.prototype member, such as
+     * `__proto__` and `constructor`. By default they are kept as own properties of the result,
+     * where a lookup with the `in` operator or a merge into another object can not tell them
+     * apart from the inherited members
+     */
+    skipPrototypeKeys?: boolean | undefined;
+}
+
+/**
  * Header value with key=value parameters as returned by parseHeaderValue()
  */
 export interface ParsedHeaderValue {
