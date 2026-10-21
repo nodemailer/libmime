@@ -4,7 +4,10 @@ import { Buffer } from 'node:buffer';
 import libmime from '../src/libmime.js';
 import * as charset from '../src/charset.js';
 import { getCharsetName } from '../src/get-charset-name.js';
+import { once } from 'node:events';
+import iconv from 'iconv-lite';
 import { expectLinear } from './fixtures/timing.js';
+import { byteByByte, runStream } from './fixtures/stream.js';
 
 describe('libmime', () => {
     describe('#isPlainText', () => {
@@ -1212,6 +1215,129 @@ describe('libmime', () => {
                 assert.strictEqual(charset.normalizeCharset(), 'UTF-8');
                 assert.strictEqual(charset.normalizeCharset(null), 'UTF-8');
                 assert.strictEqual(charset.normalizeCharset(''), 'UTF-8');
+            });
+        });
+
+        describe('#createDecodeStream', () => {
+            const decodeAll = async (name: unknown, chunks: Buffer[]) => (await runStream(charset.createDecodeStream(name), chunks)).toString('utf-8');
+
+            it('should decode multibyte characters split across chunks', async () => {
+                let text = 'Jõge 中文 \u{1F600}';
+                assert.strictEqual(await decodeAll('utf-8', byteByByte(Buffer.from(text))), text);
+                let samples: Record<string, string> = {
+                    shift_jis: '日本語 abc',
+                    'euc-jp': '日本語 abc',
+                    'euc-kr': '한국어 abc',
+                    gbk: '中 abc',
+                    big5: '中 abc',
+                    gb18030: text,
+                    'utf-16le': text,
+                    'utf-16be': text,
+                    'windows-1251': 'абв abc'
+                };
+                await Promise.all(
+                    Object.entries(samples).map(async ([name, input]) => {
+                        let bytes = iconv.encode(input, name);
+                        assert.strictEqual(await decodeAll(name, byteByByte(bytes)), input, name);
+                        assert.strictEqual(await decodeAll(name, [bytes]), input, name);
+                    })
+                );
+            });
+
+            it('should keep a character that ends in the next chunk whole', async () => {
+                // iconv-lite cuts the output of a DBCS chunk short when it completes a character
+                // that decodes into two code units, the stream must not lose what follows it
+                let gb = Buffer.concat([iconv.encode('\u{1F600}', 'gb18030'), Buffer.from('AAAAAAAA')]);
+                assert.strictEqual(await decodeAll('gb18030', [gb.subarray(0, 3), gb.subarray(3)]), '\u{1F600}AAAAAAAA');
+                // a lead byte the next chunk rejects
+                assert.strictEqual(await decodeAll('gb18030', [Buffer.from([0x81, 0x30, 0x81]), Buffer.from(' x')]), '\ufffd0\ufffd x');
+                // a run of lead bytes that each reject the next one, the last one finished in the next chunk
+                let rejected = Buffer.from([0x41, 0xd2, 0x90, 0x96, 0x92, 0xab, 0x2c]);
+                assert.strictEqual(await decodeAll('big5', [rejected.subarray(0, 5), rejected.subarray(5)]), charset.decode(rejected, 'big5'));
+                let hkscs = Buffer.from([0x88, 0x62, 0x78, 0x79, 0x7a]);
+                assert.strictEqual(await decodeAll('big5-hkscs', [hkscs.subarray(0, 1), hkscs.subarray(1)]), 'Ê̄xyz');
+                // a surrogate pair split between two writes of the UTF-16 decoder
+                let utf16 = Buffer.from('\u{1F600}x', 'utf16le');
+                assert.strictEqual(await decodeAll('utf-16le', byteByByte(utf16)), '\u{1F600}x');
+            });
+
+            it('should guess the byte order of UTF-16 without a BOM the same way decode() does', async () => {
+                // BE in the first 16 bytes but LE in the 100 characters decode() looks at
+                let bytes = Buffer.concat([Buffer.from('䄀䈀䌀䐀䔀䘀䜀䠀', 'utf16le'), Buffer.from('abcdefghijklmnopqrstuvwxyz', 'utf16le')]);
+                let expected = charset.decode(bytes, 'utf-16');
+                assert.strictEqual(await decodeAll('utf-16', byteByByte(bytes)), expected);
+                assert.strictEqual(await decodeAll('utf-16', [bytes.subarray(0, 16), bytes.subarray(16)]), expected);
+            });
+
+            it('should output UTF-8 Buffers', async () => {
+                let stream = charset.createDecodeStream('iso-8859-1');
+                let chunks: unknown[] = [];
+                stream.on('data', chunk => chunks.push(chunk));
+                stream.end(Buffer.from([0x4a, 0xf5]));
+                await once(stream, 'end');
+                assert.ok(chunks.every(chunk => Buffer.isBuffer(chunk)));
+                assert.deepStrictEqual(Buffer.concat(chunks as Buffer[]), Buffer.from('Jõ'));
+            });
+
+            it('should resolve the charset name the way header decoding does', async () => {
+                let stream = charset.createDecodeStream('win-1257');
+                assert.strictEqual(stream.charset, 'windows-1257');
+                assert.strictEqual(stream.supported, true);
+                assert.strictEqual(await runStream(stream, [Buffer.from([0xf5])]).then(buf => buf.toString()), 'õ');
+                assert.strictEqual(charset.createDecodeStream().charset, 'UTF-8');
+                assert.strictEqual(charset.createDecodeStream(null).charset, 'UTF-8');
+                // the BOM picks the byte order of UTF-16, even when it is split
+                assert.strictEqual(await decodeAll('utf-16', byteByByte(Buffer.from([0xfe, 0xff, 0x00, 0x48, 0x00, 0x69]))), 'Hi');
+                assert.strictEqual(await decodeAll('utf-16', byteByByte(Buffer.from([0xff, 0xfe, 0x48, 0x00, 0x69, 0x00]))), 'Hi');
+            });
+
+            it('should decode ISO-2022-JP split inside an escape sequence', async () => {
+                let encoded = Buffer.concat([
+                    Buffer.from([0x1b, 0x24, 0x42, 0x46, 0x7c, 0x4b, 0x5c, 0x38, 0x6c, 0x1b, 0x28, 0x42]),
+                    Buffer.from(' Japanese\r\nline 2')
+                ]);
+                let stream = charset.createDecodeStream('iso-2022-jp');
+                assert.strictEqual(stream.charset, 'ISO-2022-JP');
+                assert.strictEqual(stream.supported, true);
+                assert.strictEqual((await runStream(stream, byteByByte(encoded))).toString(), '日本語 Japanese\r\nline 2');
+                // NEC row 13, which only encoding-japanese maps
+                let nec = Buffer.from([0x1b, 0x24, 0x42, 0x2d, 0x21, 0x2d, 0x62, 0x1b, 0x28, 0x42]);
+                assert.strictEqual(await decodeAll('ISO-2022-JP', [nec.subarray(0, 2), nec.subarray(2, 5), nec.subarray(5)]), '①№');
+                assert.strictEqual(await decodeAll('jis', [encoded]), '日本語 Japanese\r\nline 2');
+            });
+
+            it('should decode an unknown charset as UTF-8 and say so', async () => {
+                let stream = charset.createDecodeStream('x-unknown-charset');
+                assert.strictEqual(stream.charset, 'X-UNKNOWN-CHARSET');
+                assert.strictEqual(stream.supported, false);
+                // split UTF-8 is joined back up, invalid bytes are replaced, the same as decode()
+                assert.strictEqual((await runStream(stream, byteByByte(Buffer.from([0x74, 0xc3, 0xb5, 0xf5, 0x41])))).toString(), 'tõ�A');
+                assert.strictEqual(charset.createDecodeStream('__proto__').supported, false);
+            });
+
+            it('should not decode with the utf-7, base64 or hex codecs', async () => {
+                await Promise.all(
+                    ['utf-7', 'UTF7', 'utf-7:1998', 'unicode-1-1-utf-7', 'utf-7-imap', 'base64', 'hex'].map(async name => {
+                        let stream = charset.createDecodeStream(name);
+                        assert.strictEqual(stream.supported, false, name);
+                        assert.strictEqual((await runStream(stream, byteByByte(Buffer.from('+ADw-script+AD4-')))).toString(), '+ADw-script+AD4-', name);
+                    })
+                );
+            });
+
+            it('should output nothing for empty input', async () => {
+                let outputs = await Promise.all(['utf-8', 'iso-2022-jp', 'utf-16', 'x-unknown'].map(name => runStream(charset.createDecodeStream(name), [])));
+                assert.deepStrictEqual(
+                    outputs.map(output => output.length),
+                    [0, 0, 0, 0]
+                );
+            });
+
+            it('should be reachable from the shared instance', async () => {
+                let stream = libmime.createDecodeStream('koi8-r');
+                assert.ok(stream instanceof charset.DecodeStream);
+                assert.strictEqual(stream.charset, 'KOI8-R');
+                assert.strictEqual((await runStream(stream, [Buffer.from([0xc1, 0xc2])])).toString(), 'аб');
             });
         });
     });

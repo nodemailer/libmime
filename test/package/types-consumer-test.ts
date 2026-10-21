@@ -18,7 +18,7 @@ const esmConsumer = `
 import { Buffer } from 'node:buffer';
 import libmime, { Libmime } from 'libmime';
 import type { ParsedHeaderValue, StructuredHeader, StructuredHeaderValue, MimeWordEncoding, HeaderParam, HeaderLine, HeaderObject } from 'libmime';
-import charset, { decode, normalizeCharset } from 'libmime/lib/charset';
+import charset, { decode, normalizeCharset, createDecodeStream, DecodeStream } from 'libmime/lib/charset';
 import mimetypes, { extensions } from 'libmime/lib/mimetypes.js';
 import charsets from 'libmime/lib/charsets';
 import { getCharsetName } from 'libmime/lib/get-charset-name';
@@ -40,8 +40,11 @@ const text: string = charset.decode(Buffer.from('x'), 'latin1') + decode(Buffer.
 const ext: string | string[] | undefined = mimetypes.list['text/plain'] || extensions['txt'];
 const name: string | false = getCharsetName('UTF8');
 const plain: boolean = libmime.isPlainText('a', true);
+const stream: libmime.DecodeStream = libmime.createDecodeStream('latin1');
+const streamToo: DecodeStream = createDecodeStream('utf-8');
+const streamInfo: string = stream.charset + String(streamToo.supported) + String(charset.createDecodeStream().readable);
 
-export { parsed, word, params, line, headers, header, text, ext, name, plain };
+export { parsed, word, params, line, headers, header, text, ext, name, plain, streamInfo };
 `;
 
 // A TypeScript CommonJS consumer written against @types/libmime: the module is the instance
@@ -60,8 +63,10 @@ const custom: libmime.Libmime = new Libmime();
 const viaModule = new libmime.Libmime({ key: 'value' });
 const decoded: string = star.decodeWords('x') + defaultImport.decodeWords('x') + custom.encodeWord('õ', encoding) + viaModule.foldLines('a');
 const name: string = charset.normalizeCharset('latin1') + charset.decode(Buffer.from('x'));
+const stream: libmime.DecodeStream = libmime.createDecodeStream('latin1');
+const supported: boolean = stream.supported && charset.createDecodeStream('utf-8').supported;
 
-export { structured, parsed, decoded, name };
+export { structured, parsed, decoded, name, supported };
 `;
 
 // A CommonJS JavaScript consumer checked with checkJs, the way @zone-eu/mailsplit uses the

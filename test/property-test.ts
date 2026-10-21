@@ -6,6 +6,7 @@ import iconv from 'iconv-lite';
 import encodingJapanese from 'encoding-japanese';
 import libmime from '../src/libmime.js';
 import * as charset from '../src/charset.js';
+import { randomSplit, runStream } from './fixtures/stream.js';
 import { forEachCase, loneSurrogate, paramName, show, text, wellFormed, words, type Rng } from './fixtures/fuzz.js';
 
 // Property based tests: every case is generated from the seed, and the assertions are the
@@ -270,6 +271,53 @@ describe('Properties', () => {
                     }
                 }
             }
+        });
+    });
+
+    describe('decode streams', () => {
+        // Charsets with the text each one can represent. The streams must decode however the input
+        // is cut into chunks, a multibyte character split in two included
+        const unicode = ['ascii', 'latin', 'cyrillic', 'cjk', 'astral', 'combining'] as const;
+        const streamCharsets: Record<string, (rng: Rng) => Buffer> = {
+            'utf-8': rng => Buffer.from(text(rng, 40, [...unicode])),
+            'utf-16': rng => Buffer.concat([Buffer.from(rng.pick([[], [0xff, 0xfe]])), iconv.encode(text(rng, 40, [...unicode]), 'utf-16le')]),
+            'utf-32': rng => iconv.encode(text(rng, 40, [...unicode]), rng.pick(['utf-32le', 'utf-32be']), { addBOM: rng.chance(0.5) }),
+            'utf-16be': rng => iconv.encode(text(rng, 40, [...unicode]), 'utf-16be'),
+            'utf-16le': rng => iconv.encode(text(rng, 40, [...unicode]), 'utf-16le'),
+            gb18030: rng => iconv.encode(text(rng, 40, [...unicode]), 'gb18030'),
+            'big5-hkscs': rng => iconv.encode(rng.string('\u4e2d\u6587\u5b57\u00ca\u0304\u00ea\u030c\u{20000}abc', rng.int(0, 30)), 'big5hkscs'),
+            shift_jis: rng => iconv.encode(rng.string('\u3042\u3044\u30ab\u65e5\u672c abc', rng.int(0, 30)), 'shift_jis'),
+            'euc-jp': rng => iconv.encode(rng.string('\u3042\u3044\u30ab\u65e5\u672c abc', rng.int(0, 30)), 'euc-jp'),
+            'euc-kr': rng => iconv.encode(rng.string('\ud55c\uad6d\uc5b4 abc', rng.int(0, 30)), 'euc-kr'),
+            gbk: rng => iconv.encode(rng.string('\u4e2d\u6587\u5b57\u7b26 abc', rng.int(0, 30)), 'gbk'),
+            'windows-1251': rng => iconv.encode(text(rng, 40, ['ascii', 'cyrillic']), 'windows-1251'),
+            'iso-2022-jp': rng =>
+                Buffer.from(
+                    encodingJapanese.convert(encodingJapanese.stringToCode(rng.string('\u3042\u3044\u30ab\u65e5\u672c abc', rng.int(0, 30))), {
+                        to: 'JIS',
+                        from: 'UNICODE'
+                    })
+                ),
+            'utf-7': rng => Buffer.from(text(rng, 40, ['ascii', 'specials'])),
+            'x-unknown': rng => Buffer.from(text(rng, 40, [...unicode]))
+        };
+
+        it('outputs what decode() gives for the whole input, however it is chunked', async () => {
+            let cases: { name: string; bytes: Buffer; chunks: Buffer[]; context: string }[] = [];
+            forEachCase(15, (rng, context) => {
+                let name = rng.pick(Object.keys(streamCharsets));
+                // valid text in the charset, or random bytes that are mostly not
+                let bytes = rng.chance(0.7) ? streamCharsets[name](rng) : rng.bytes(rng.int(0, 40));
+                cases.push({ name, bytes, chunks: randomSplit(rng, bytes), context });
+            });
+            let outputs = await Promise.all(cases.map(({ name, chunks }) => runStream(charset.createDecodeStream(name), chunks)));
+            cases.forEach(({ name, bytes, chunks, context }, i) => {
+                assert.deepStrictEqual(
+                    outputs[i],
+                    Buffer.from(charset.decode(bytes, name)),
+                    `${context} ${show([name, bytes.toString('hex'), chunks.map(c => c.length)])}`
+                );
+            });
         });
     });
 

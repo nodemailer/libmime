@@ -16,10 +16,11 @@ const require = createRequire(import.meta.url);
 const packageName: string = 'libmime';
 const subpath = (name: string) => packageName + '/lib/' + name;
 
-// The methods of the pre-TypeScript Libmime class, all of them reachable on the shared instance
+// The methods of the Libmime class (the pre-TypeScript ones and those added since), all of them reachable on the shared instance
 const METHODS = [
     'buildHeaderParam',
     'buildHeaderValue',
+    'createDecodeStream',
     'decodeFlowed',
     'decodeHeader',
     'decodeHeaders',
@@ -130,7 +131,7 @@ describe('Built package', { timeout: 30 * 1000, skip: hasDist ? false : 'dist/ i
 
         it('keeps deep imports returning their old shapes', () => {
             const charset = require(subpath('charset'));
-            assert.deepStrictEqual(Object.keys(charset).sort(), ['convert', 'decode', 'encode', 'normalizeCharset']);
+            assert.deepStrictEqual(Object.keys(charset).sort(), ['DecodeStream', 'convert', 'createDecodeStream', 'decode', 'encode', 'normalizeCharset']);
             assert.strictEqual(charset.default, charset);
             assert.strictEqual(charset.decode(Buffer.from([0xf5]), 'latin1'), 'õ');
 

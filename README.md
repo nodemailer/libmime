@@ -29,7 +29,7 @@ import { Libmime } from 'libmime';
 const mime = new Libmime();
 ```
 
-The helper modules can be loaded directly as well, for example `libmime/lib/charset` (`encode`, `decode`, `convert`, `normalizeCharset`) and `libmime/lib/mimetypes` (`list`, `extensions`).
+The helper modules can be loaded directly as well, for example `libmime/lib/charset` (`encode`, `decode`, `convert`, `normalizeCharset`, `createDecodeStream`, `DecodeStream`) and `libmime/lib/mimetypes` (`list`, `extensions`).
 
 ### TypeScript
 
@@ -205,6 +205,34 @@ This can be combined into a properly formatted header:
 ```
 Content-disposition: attachment; filename*0*=utf-8''filename%20
   filename*1*=%C3%B5%C3%A4%C3%B6; filename*2*=%C3%BC.txt
+```
+
+### Charsets
+
+#### #normalizeCharset
+
+Resolves a charset name to its canonical form, eg. `win-1257` becomes `windows-1257`. Unknown names are returned uppercased.
+
+    libmime.normalizeCharset(charset) → String
+
+#### #createDecodeStream
+
+Creates a Transform stream that decodes bytes in a charset into UTF-8 Buffers, for example a message body. The output is what decoding the whole input at once gives, however it is split into chunks. The charset name is resolved the same way as for encoded words, the Japanese charsets iconv-lite does not support (ISO-2022-JP and friends) are decoded with encoding-japanese, which is not incremental, so such input is collected until the stream ends. The double byte charsets (Shift_JIS, GBK, GB18030, Big5, EUC-KR, EUC-JP) are decoded up to the last byte below 0x30 (a space, a line break, most ASCII punctuation) of what has arrived, so input without any such byte is held until the stream ends as well.
+
+    libmime.createDecodeStream(charset) → DecodeStream
+
+- **charset** - Charset the input is encoded in, defaults to UTF-8
+
+The stream has two extra properties:
+
+- **charset** - the canonical charset name
+- **supported** - `false` when the charset is unknown or refused (UTF-7, which could smuggle markup past filters, and the base64 and hex transfer encodings). The input is then decoded as UTF-8 regardless, invalid bytes replaced with U+FFFD, the same fallback encoded words get. Check it before piping when the bytes must not be relabelled as UTF-8, for example to keep the original part as it is
+
+```javascript
+const stream = libmime.createDecodeStream('iso-8859-1');
+if (stream.supported) {
+    body.pipe(stream).pipe(output);
+}
 ```
 
 ### MIME Types

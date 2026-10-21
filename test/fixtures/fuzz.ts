@@ -87,6 +87,8 @@ export const ALPHABETS = {
     cyrillic: 'абвгдежзийклмнопрстуфхцчшщъыьэюя',
     cjk: '中文字符日本語한국어漢字',
     astral: '\u{1F600}\u{1F4E7}\u{20000}\u{1D11E}\u{10437}',
+    // combining marks, drawn on their own as well, so some of them land at the start of a string
+    combining: 'aeo\u0301\u0308\u0327\u030a\u20dd\u{1F3FD}\u200d',
     controls: '\x00\x01\x07\x08\x0b\x0c\x0e\x1b\x1f\x7f',
     breaks: '\r\n'
 };

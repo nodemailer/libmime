@@ -23,4 +23,8 @@ assert.strictEqual(libmime.detectExtension('image/png'), 'png');
 const charset = require('../dist/cjs/charset.js');
 assert.strictEqual(charset.decode(Buffer.from([0xf5]), 'iso-8859-15'), 'õ');
 
+const stream = libmime.createDecodeStream('iso-8859-15');
+assert.ok(stream instanceof charset.DecodeStream);
+assert.strictEqual(stream.charset, 'ISO-8859-15');
+
 console.log('CommonJS build loads and works without require(esm)');

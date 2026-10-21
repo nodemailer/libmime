@@ -294,6 +294,19 @@ export class Libmime {
     }
 
     /**
+     * Creates a Transform stream that decodes a body in the given charset into UTF-8 Buffers,
+     * resolving the charset name and handling the Japanese charsets the same way header
+     * decoding does. An unknown or refused charset (UTF-7, base64, hex) is decoded as UTF-8,
+     * and the stream says so with `supported` set to false.
+     *
+     * @param {String} [charset='UTF-8'] Charset the input is encoded in
+     * @return {DecodeStream} Transform stream with `charset` and `supported` properties
+     */
+    createDecodeStream(charset?: unknown): libcharset.DecodeStream {
+        return libcharset.createDecodeStream(charset);
+    }
+
+    /**
      * Decodes the inner payload of a single mime encoded-word into a unicode string.
      * Expects the three components of `=?charset?encoding?text?=` already separated.
      *
@@ -1118,6 +1131,7 @@ type LibmimeInstance = Libmime;
 // a CommonJS consumer can name the types
 namespace libmime {
     export type Libmime = LibmimeInstance;
+    export type DecodeStream = libcharset.DecodeStream;
     export type HeaderLine = types.HeaderLine;
     export type HeaderObject = types.HeaderObject;
     export type HeaderParam = types.HeaderParam;
