@@ -205,7 +205,9 @@ const charsets: Record<string, string> = {
     ksc_5601: 'EUC-KR',
     'windows-949': 'EUC-KR',
     'utf-16be': 'UTF-16BE',
-    'utf-16': 'UTF-16LE',
+    // iconv-lite's UTF-16 decoder reads the byte order from a BOM and guesses it from the
+    // content without one, falling back to little endian
+    'utf-16': 'UTF-16',
     'utf-16le': 'UTF-16LE'
 };
 

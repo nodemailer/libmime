@@ -245,6 +245,16 @@ describe('libmime', () => {
             assert.strictEqual(libmime.decodeWords('=?hex?Q?3c7363726970743e?='), '3c7363726970743e');
             assert.strictEqual(libmime.decodeWords('=?base64?Q?PHNjcmlwdD4=3D?='), 'PHNjcmlwdD4=');
         });
+
+        it('should read the byte order of UTF-16 from the BOM', () => {
+            // big endian with a BOM, used to be decoded as little endian
+            assert.strictEqual(libmime.decodeWords('=?utf-16?B?' + Buffer.from([0xfe, 0xff, 0x00, 0x48, 0x00, 0x69]).toString('base64') + '?='), 'Hi');
+            assert.strictEqual(libmime.decodeWords('=?UTF-16?Q?=FE=FF=00H=00i?='), 'Hi');
+            // little endian with a BOM
+            assert.strictEqual(libmime.decodeWords('=?utf-16?B?' + Buffer.from([0xff, 0xfe, 0x48, 0x00, 0x69, 0x00]).toString('base64') + '?='), 'Hi');
+            // no BOM, little endian
+            assert.strictEqual(libmime.decodeWords('=?utf-16?B?' + Buffer.from([0x48, 0x00, 0x69, 0x00]).toString('base64') + '?='), 'Hi');
+        });
     });
 
     describe('#buildHeaderParam', () => {
@@ -1119,6 +1129,17 @@ describe('libmime', () => {
                 assert.strictEqual(charset.decode(Buffer.from([0x74, 0xc3, 0xb5]), 'x-unknown-charset'), 't\u00f5');
                 // invalid UTF-8 is replaced, not thrown
                 assert.strictEqual(charset.decode(Buffer.from([0x74, 0xf5]), 'x-unknown-charset'), 't\ufffd');
+            });
+
+            it('should read the byte order of UTF-16 from the BOM', () => {
+                assert.strictEqual(charset.normalizeCharset('utf-16'), 'UTF-16');
+                assert.strictEqual(charset.normalizeCharset('UTF16'), 'UTF-16');
+                assert.strictEqual(charset.decode(Buffer.from([0xfe, 0xff, 0x00, 0x48, 0x00, 0x69, 0x00, 0xf5]), 'utf-16'), 'Hi\u00f5');
+                assert.strictEqual(charset.decode(Buffer.from([0xff, 0xfe, 0x48, 0x00, 0x69, 0x00, 0xf5, 0x00]), 'utf-16'), 'Hi\u00f5');
+                assert.strictEqual(charset.decode(Buffer.from([0x48, 0x00, 0x69, 0x00, 0xf5, 0x00]), 'utf-16'), 'Hi\u00f5');
+                // the explicit byte orders are kept as they are
+                assert.strictEqual(charset.decode(Buffer.from([0x00, 0x48, 0x00, 0x69]), 'utf-16be'), 'Hi');
+                assert.strictEqual(charset.decode(Buffer.from([0x48, 0x00, 0x69, 0x00]), 'utf-16le'), 'Hi');
             });
 
             it('should treat the utf-7, base64 and hex codecs as unknown charsets', () => {
