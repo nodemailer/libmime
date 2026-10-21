@@ -1,5 +1,19 @@
 # Changelog
 
+## [5.6.0](https://github.com/nodemailer/libmime/compare/v5.5.2...v5.6.0) (2026-10-21)
+
+
+### Features
+
+* add a skipPrototypeKeys option to decodeHeaders() ([cfbf67d](https://github.com/nodemailer/libmime/commit/cfbf67dce5074f954ffcf05b04129473ebd40ef6))
+* add createDecodeStream() for decoding a body in any charset ([dbc96a0](https://github.com/nodemailer/libmime/commit/dbc96a06e0e38f5ca45a30dac602cb525e2b0c02))
+
+
+### Bug Fixes
+
+* read the byte order of UTF-16 from the BOM ([a9332ee](https://github.com/nodemailer/libmime/commit/a9332ee23cf0527854cc89f6ea6b438d51ca1e29))
+* resolve the x-mac charset labels and Big5-HKSCS ([40d9eda](https://github.com/nodemailer/libmime/commit/40d9eda949b9d086ccb4c47b34811a439a14a8f8))
+
 ## [5.5.2](https://github.com/nodemailer/libmime/compare/v5.5.1...v5.5.2) (2026-10-19)
 
 
