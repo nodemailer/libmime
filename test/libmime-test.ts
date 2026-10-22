@@ -640,6 +640,24 @@ describe('libmime', () => {
             expectLinear(n => 'text/plain; x=' + '(a '.repeat(n) + ')', stripped, 25000);
         });
 
+        it('should drop what follows a closed quoted string up to the next parameter', () => {
+            // a value is a token or a quoted string, not both, as Python and postal-mime read
+            // it: `boundary="b"c` named a boundary bc that no delimiter line matches
+            assert.deepStrictEqual(libmime.parseHeaderValue('multipart/mixed; boundary="b"c; charset="utf-8" x\\y; format=flowed'), {
+                value: 'multipart/mixed',
+                params: { boundary: 'b', charset: 'utf-8', format: 'flowed' }
+            });
+            assert.deepStrictEqual(libmime.parseHeaderValue('attachment; filename="a b.txt"(c)').params, {
+                filename: 'a b.txt'
+            });
+            // a second quoted string behind the first is junk as well, not a reopened quote,
+            // so the ";" inside it ends the parameter
+            assert.deepStrictEqual(libmime.parseHeaderValue('multipart/mixed; boundary="b" "; x=y"').params, {
+                boundary: 'b',
+                x: 'y'
+            });
+        });
+
         it('should keep the first value of a duplicated parameter', () => {
             // as Python and postal-mime read it: the last value named the parts under --c
             // that the other readers leave in the epilogue of the parts under --b

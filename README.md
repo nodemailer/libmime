@@ -154,7 +154,8 @@ Parses a header value with `key=value` arguments into a structured object. Usefu
 - **options** - optional options object
     - **stripComments** - if `true`, RFC 822 comments outside quoted strings are dropped, so `boundary=b (comment)` gives the boundary `b`. A parenthesis right behind the `=` of a parameter or behind a token of its value continues the token, `filename=Invoice(1).pdf` keeps its name and `boundary=(c)b` names the boundary `(c)b`, as both do for Python and postal-mime. A comment that never closes runs to the end of the value, unless a parameter follows it, in which case it is content and the parameter survives. Use it for the MIME headers (`Content-Type`, `Content-Disposition`). By default comments are kept, since a header such as `Authentication-Results` carries information in them
 
-A parameter that occurs more than once keeps its first value, as Python and postal-mime read it. An RFC 2231
+A parameter value is a token or a quoted string, so what follows a closed quoted string up to the next `;` is
+dropped (`boundary="b"c` gives `b`), and a parameter that occurs more than once keeps its first value, both as Python and postal-mime read them. An RFC 2231
 continuation overrides the plain parameter of the same name in either order, libmime's own rule after RFC 6266
 section 4.3.
 

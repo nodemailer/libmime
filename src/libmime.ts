@@ -661,6 +661,8 @@ export class Libmime {
         let stage = STAGE_VALUE;
 
         let quote = false;
+        // A quoted string has closed and the ";" that ends the parameter has not come yet
+        let quoteClosed = false;
         let escaped = false;
         let chr: string;
 
@@ -744,6 +746,15 @@ export class Libmime {
                     }
                     break;
                 case STAGE_VALUE:
+                    if (quoteClosed && chr !== ';') {
+                        // Nothing behind a closed quoted string reaches the value: a parameter
+                        // value is a token or a quoted string, not both (rfc2045 section 5.1),
+                        // so what follows one is junk up to the ";" that ends the parameter, as
+                        // Python and postal-mime read it. Read on, `boundary="b"c` named a
+                        // boundary bc that no delimiter line of the message matches
+                        escaped = false;
+                        break;
+                    }
                     if (escaped) {
                         value += chr;
                         valueEnd = value.length;
@@ -753,12 +764,14 @@ export class Libmime {
                         continue;
                     } else if (chr === '"') {
                         // every char between the quotes is significant, including whitespace
+                        quoteClosed = quote;
                         quote = !quote;
                         tokenOpen = false;
                     } else if (!quote && chr === ';') {
                         commit();
                         stage = STAGE_KEY;
                         tokenOpen = false;
+                        quoteClosed = false;
                     } else if (!quote && isWSP(chr)) {
                         if (value.length) {
                             value += chr;
