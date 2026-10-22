@@ -35,6 +35,22 @@ export interface DecodeHeadersOptions {
 }
 
 /**
+ * Options of parseHeaderValue()
+ */
+export interface ParseHeaderValueOptions {
+    /**
+     * Drop the RFC 822 comments outside quoted strings. The MIME headers (Content-Type,
+     * Content-Disposition) allow them and they are not part of the value, so `boundary=b (comment)`
+     * names the boundary `b`. A parenthesis right behind a token of a parameter value continues
+     * it, `filename=Invoice(1).pdf` keeps its name. A comment that never closes runs to the end
+     * of the value, unless a parameter follows it, in which case it is content and the parameter
+     * survives. By default comments are kept as they are, since a header such as
+     * Authentication-Results carries information in them
+     */
+    stripComments?: boolean | undefined;
+}
+
+/**
  * Header value with key=value parameters as returned by parseHeaderValue()
  */
 export interface ParsedHeaderValue {

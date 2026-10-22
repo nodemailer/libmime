@@ -17,13 +17,25 @@ const tsc = require.resolve('typescript/bin/tsc');
 const esmConsumer = `
 import { Buffer } from 'node:buffer';
 import libmime, { Libmime } from 'libmime';
-import type { ParsedHeaderValue, StructuredHeader, StructuredHeaderValue, MimeWordEncoding, HeaderParam, HeaderLine, HeaderObject, DecodeHeadersOptions } from 'libmime';
+import type {
+    ParsedHeaderValue,
+    ParseHeaderValueOptions,
+    StructuredHeader,
+    StructuredHeaderValue,
+    MimeWordEncoding,
+    HeaderParam,
+    HeaderLine,
+    HeaderObject,
+    DecodeHeadersOptions
+} from 'libmime';
 import charset, { decode, normalizeCharset, createDecodeStream, DecodeStream } from 'libmime/lib/charset';
 import mimetypes, { extensions } from 'libmime/lib/mimetypes.js';
 import charsets from 'libmime/lib/charsets';
 import { getCharsetName } from 'libmime/lib/get-charset-name';
 
-const parsed: ParsedHeaderValue = libmime.parseHeaderValue('text/plain; charset=utf-8');
+const headerValueOptions: ParseHeaderValueOptions = { stripComments: true };
+const parsed: ParsedHeaderValue =
+    libmime.parseHeaderValue('text/plain; charset=utf-8') && libmime.parseHeaderValue('text/plain (c)', headerValueOptions);
 const structured: libmime.StructuredHeader = parsed;
 const structuredToo: StructuredHeader = structured;
 const decodedParams: string[] = parsed.decodedParams;

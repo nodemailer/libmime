@@ -6,13 +6,41 @@ import libqp from 'libqp';
 import * as libcharset from './charset.js';
 import * as mimetypes from './mimetypes.js';
 
-import type { DecodeHeadersOptions, HeaderLine, HeaderObject, HeaderParam, LibmimeConfig, ParsedHeaderValue, StructuredHeaderValue } from './types.js';
+import type {
+    DecodeHeadersOptions,
+    HeaderLine,
+    HeaderObject,
+    HeaderParam,
+    LibmimeConfig,
+    ParsedHeaderValue,
+    ParseHeaderValueOptions,
+    StructuredHeaderValue
+} from './types.js';
 import type * as types from './types.js';
 
 export type * from './types.js';
 
 const STAGE_KEY = 0x1001;
 const STAGE_VALUE = 0x1002;
+
+/**
+ * Offset of the ")" that closes the rfc822 comment opening at `start`, or -1 when the
+ * comment never closes. Comments nest, and a backslash escapes the character after it
+ */
+const findCommentEnd = (str: string, start: number): number => {
+    let depth = 0;
+    for (let i = start, len = str.length; i < len; i++) {
+        let chr = str.charAt(i);
+        if (chr === '\\') {
+            i++;
+        } else if (chr === '(') {
+            depth++;
+        } else if (chr === ')' && --depth === 0) {
+            return i;
+        }
+    }
+    return -1;
+};
 
 // Sets an own property on a plain object. A regular assignment with a
 // '__proto__' key would silently modify the object's prototype instead of
@@ -604,9 +632,13 @@ export class Libmime {
      * decoded, so a caller that runs decodeWords() over the params has to leave them out
      *
      * @param {String} str Header value
+     * @param {Object} [options] Options, see ParseHeaderValueOptions
      * @return {Object} Header value as a parsed structure
      */
-    parseHeaderValue(str: string): ParsedHeaderValue {
+    parseHeaderValue(str: string, options?: ParseHeaderValueOptions): ParsedHeaderValue {
+        // Cleared again by an unclosed "(", see the loop
+        let stripComments = !!options?.stripComments;
+
         let response = {
             value: '',
             params: {}
@@ -632,6 +664,12 @@ export class Libmime {
         let escaped = false;
         let chr: string;
 
+        // Whether the last character read belongs to an unquoted token of a parameter value,
+        // which a "(" continues: `filename=Invoice(1).pdf` names the file. Anywhere else, in
+        // the type, in a parameter name or behind a quoted string, a "(" opens a comment, as
+        // it does for Python and postal-mime
+        let tokenOpen = false;
+
         // Stores the collected value, either as the default value, as the value for the
         // current key, or as a key that has no value at all. Runs once per parameter
         let commit = () => {
@@ -642,8 +680,9 @@ export class Libmime {
             if (stage === STAGE_KEY) {
                 // key without a value, see emptykey:
                 // Header-Key: somevalue; key=value; emptykey
-                if (collected) {
-                    setOwnProperty(response.params, collected.toLowerCase(), '');
+                let name = collected.toLowerCase();
+                if (name) {
+                    setOwnProperty(response.params, name, '');
                 }
             } else if (key === false) {
                 // default value
@@ -656,6 +695,28 @@ export class Libmime {
 
         for (let i = 0, len = str.length; i < len; i++) {
             chr = str.charAt(i);
+
+            // With stripComments, an rfc822 comment stands anywhere outside a quoted string
+            // but right behind a token it would continue. Read as content, `boundary=b (comment)`
+            // named a boundary no delimiter line matches, so the parts that Python and
+            // postal-mime find stayed hidden from a splitter built on this
+            if (stripComments && chr === '(' && !quote && !escaped && !tokenOpen) {
+                let end = findCommentEnd(str, i);
+                if (end < 0 && str.indexOf(';', i) < 0) {
+                    // A comment that never closes runs to the end of the value, as it does for
+                    // Python. One that a parameter follows is content instead, with everything
+                    // after it, so that the parameter survives, as postal-mime keeps it
+                    end = len - 1;
+                }
+                if (end >= 0) {
+                    i = end;
+                    continue;
+                }
+                // Looking for a closing ")" again would scan a run of unclosed "(" to its end
+                // once for each of them
+                stripComments = false;
+            }
+
             switch (stage) {
                 case STAGE_KEY:
                     if (chr === '=') {
@@ -679,22 +740,27 @@ export class Libmime {
                     if (escaped) {
                         value += chr;
                         valueEnd = value.length;
+                        tokenOpen = key !== false && !quote;
                     } else if (chr === '\\') {
                         escaped = true;
                         continue;
                     } else if (chr === '"') {
                         // every char between the quotes is significant, including whitespace
                         quote = !quote;
+                        tokenOpen = false;
                     } else if (!quote && chr === ';') {
                         commit();
                         stage = STAGE_KEY;
+                        tokenOpen = false;
                     } else if (!quote && isWSP(chr)) {
                         if (value.length) {
                             value += chr;
                         }
+                        tokenOpen = false;
                     } else {
                         value += chr;
                         valueEnd = value.length;
+                        tokenOpen = key !== false && !quote;
                     }
                     escaped = false;
                     break;
@@ -1148,6 +1214,7 @@ namespace libmime {
     export type LibmimeConfig = types.LibmimeConfig;
     export type MimeWordEncoding = types.MimeWordEncoding;
     export type ParsedHeaderValue = types.ParsedHeaderValue;
+    export type ParseHeaderValueOptions = types.ParseHeaderValueOptions;
     export type StructuredHeader = types.StructuredHeader;
     export type StructuredHeaderValue = types.StructuredHeaderValue;
 }

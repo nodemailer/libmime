@@ -148,9 +148,11 @@ Return value is an object of headers, where header keys are object keys and valu
 Parses a header value with `key=value` arguments into a structured object. Useful when dealing with
 `content-type` and such. Continuation encoded params are joined into mime encoded words.
 
-    parseHeaderValue(valueString) → Object
+    parseHeaderValue(valueString[, options]) → Object
 
 - **valueString** - a header value without the key
+- **options** - optional options object
+    - **stripComments** - if `true`, RFC 822 comments outside quoted strings are dropped, so `boundary=b (comment)` gives the boundary `b`. A parenthesis right behind a token of a parameter value continues it, `filename=Invoice(1).pdf` keeps its name. A comment that never closes runs to the end of the value, unless a parameter follows it, in which case it is content and the parameter survives. Use it for the MIME headers (`Content-Type`, `Content-Disposition`). By default comments are kept, since a header such as `Authentication-Results` carries information in them
 
 **Example**
 

@@ -562,6 +562,73 @@ describe('libmime', () => {
             assert.deepStrictEqual(libmime.parseHeaderValue(str), obj);
         });
 
+        // comments are dropped on request only, the ARC header case below keeps its own
+        let stripped = (str: string) => libmime.parseHeaderValue(str, { stripComments: true });
+
+        it('should drop comments with stripComments', () => {
+            assert.deepStrictEqual(libmime.parseHeaderValue('multipart/mixed; boundary=b (comment)').params, {
+                boundary: 'b (comment)'
+            });
+            assert.deepStrictEqual(stripped('multipart/mixed; boundary=b (comment)'), {
+                value: 'multipart/mixed',
+                params: { boundary: 'b' }
+            });
+            assert.deepStrictEqual(stripped('(c) text/plain (c); (c) charset=(c)utf-8 (a (nested) c)'), {
+                value: 'text/plain',
+                params: { charset: 'utf-8' }
+            });
+            // a comment stands for whitespace, so it does not join the tokens around it
+            assert.deepStrictEqual(stripped('text/plain; x=a (c)b').params, { x: 'a b' });
+            // an escaped parenthesis does not close the comment
+            assert.deepStrictEqual(stripped('text/plain; charset=utf-8 (a \\) b); format=flowed'), {
+                value: 'text/plain',
+                params: { charset: 'utf-8', format: 'flowed' }
+            });
+        });
+
+        it('should keep a parenthesis that continues a token or sits in a quoted string with stripComments', () => {
+            assert.deepStrictEqual(stripped('attachment; filename=Invoice(1).pdf').params, {
+                filename: 'Invoice(1).pdf'
+            });
+            assert.deepStrictEqual(stripped('attachment; filename="a (1).pdf" (c)').params, {
+                filename: 'a (1).pdf'
+            });
+            // only a token of a parameter value is continued: in the type, in a parameter
+            // name and behind a quoted string a "(" opens a comment, as it does for Python
+            // and postal-mime, so the boundary is found where both of them find it
+            assert.deepStrictEqual(stripped('multipart(c)/mixed; boundary(c)=b'), {
+                value: 'multipart/mixed',
+                params: { boundary: 'b' }
+            });
+            assert.deepStrictEqual(stripped('multipart/mixed; boundary="b"(c)').params, { boundary: 'b' });
+            assert.deepStrictEqual(stripped('multipart/mixed; boundary=(c)"b"').params, { boundary: 'b' });
+            assert.deepStrictEqual(stripped('attachment; filename=a\\(b(c)').params, { filename: 'a(b(c)' });
+        });
+
+        it('should read an unclosed comment as Python and postal-mime do with stripComments', () => {
+            // one that nothing follows runs to the end of the value
+            assert.deepStrictEqual(stripped('multipart/mixed; boundary=b (c').params, { boundary: 'b' });
+            assert.deepStrictEqual(stripped('text/plain (c'), { value: 'text/plain', params: {} });
+            // one that a parameter follows is content, and so is every parenthesis after it,
+            // so the parameters behind it survive, as postal-mime keeps them (Python reads
+            // the comment to the end and loses the parameters)
+            assert.deepStrictEqual(stripped('text/plain (c; charset=utf-8'), {
+                value: 'text/plain (c',
+                params: { charset: 'utf-8' }
+            });
+            assert.deepStrictEqual(stripped('text/plain; x=(a; boundary=b (c'), {
+                value: 'text/plain',
+                params: { x: '(a', boundary: 'b (c' }
+            });
+        });
+
+        it('should drop comments in linear time', () => {
+            expectLinear(n => 'text/plain; x=' + '('.repeat(n), stripped, 25000);
+            expectLinear(n => 'text/plain; x=' + '('.repeat(n) + ')'.repeat(n), stripped, 25000);
+            expectLinear(n => 'text/plain; x=' + '(a) '.repeat(n) + 'b', stripped, 25000);
+            expectLinear(n => 'text/plain; x=' + '(a '.repeat(n) + ')', stripped, 25000);
+        });
+
         it('should handle multi line values', () => {
             let str =
                     'text/plain; single_encoded*="UTF-8\'\'%C3%95%C3%84%C3%96%C3%9C";\n' +
