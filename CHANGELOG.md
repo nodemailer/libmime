@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.6.2](https://github.com/nodemailer/libmime/compare/v5.6.1...v5.6.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* continue the token of a parameter value with a parenthesis right behind the equals sign ([9bcc718](https://github.com/nodemailer/libmime/commit/9bcc7187734f7fb9e3573aa488dd7a0c47ae4adf))
+
 ## [5.6.1](https://github.com/nodemailer/libmime/compare/v5.6.0...v5.6.1) (2026-10-22)
 
 
