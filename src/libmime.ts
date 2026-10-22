@@ -671,7 +671,12 @@ export class Libmime {
         let tokenOpen = false;
 
         // Stores the collected value, either as the default value, as the value for the
-        // current key, or as a key that has no value at all. Runs once per parameter
+        // current key, or as a key that has no value at all. Runs once per parameter.
+        //
+        // A parameter given twice keeps its first value, as it does for Python and for
+        // postal-mime. Letting the last one win read `boundary=b; boundary=c` as a multipart
+        // of the parts under `--c`, which the other readers leave in the epilogue of the
+        // parts under `--b`
         let commit = () => {
             let collected = value.substring(0, valueEnd);
             value = '';
@@ -681,13 +686,13 @@ export class Libmime {
                 // key without a value, see emptykey:
                 // Header-Key: somevalue; key=value; emptykey
                 let name = collected.toLowerCase();
-                if (name) {
+                if (name && !Object.hasOwn(response.params, name)) {
                     setOwnProperty(response.params, name, '');
                 }
             } else if (key === false) {
                 // default value
                 response.value = collected;
-            } else {
+            } else if (!Object.hasOwn(response.params, key)) {
                 // subkey value
                 setOwnProperty(response.params, key, collected);
             }

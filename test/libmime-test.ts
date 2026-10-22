@@ -629,6 +629,28 @@ describe('libmime', () => {
             expectLinear(n => 'text/plain; x=' + '(a '.repeat(n) + ')', stripped, 25000);
         });
 
+        it('should keep the first value of a duplicated parameter', () => {
+            // as Python and postal-mime read it: the last value named the parts under --c
+            // that the other readers leave in the epilogue of the parts under --b
+            assert.deepStrictEqual(libmime.parseHeaderValue('multipart/mixed; boundary=b; boundary=c; Boundary="d"').params, {
+                boundary: 'b'
+            });
+            // a valueless repeat does not clear it either
+            assert.deepStrictEqual(libmime.parseHeaderValue('attachment; filename=a.txt; filename').params, { filename: 'a.txt' });
+            assert.deepStrictEqual(libmime.parseHeaderValue('attachment; filename; filename=a.txt').params, { filename: '' });
+            // An empty first value keeps the slot as well, as it does for postal-mime and
+            // for the get_boundary() Python splits by, so none of the three finds a part
+            // under --c (Python's ContentTypeHeader.params alone skips the empty one)
+            assert.deepStrictEqual(libmime.parseHeaderValue('multipart/mixed; boundary=; boundary=c').params, { boundary: '' });
+            // an rfc2231 continuation still overrides the plain form, in either order
+            assert.deepStrictEqual(libmime.parseHeaderValue('attachment; filename=a.txt; filename*0=b.; filename*1=txt').params, {
+                filename: 'b.txt'
+            });
+            assert.deepStrictEqual(libmime.parseHeaderValue('attachment; filename*0=b.; filename*1=txt; filename=a.txt').params, {
+                filename: 'b.txt'
+            });
+        });
+
         it('should handle multi line values', () => {
             let str =
                     'text/plain; single_encoded*="UTF-8\'\'%C3%95%C3%84%C3%96%C3%9C";\n' +
