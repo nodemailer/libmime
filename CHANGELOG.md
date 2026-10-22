@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.6.1](https://github.com/nodemailer/libmime/compare/v5.6.0...v5.6.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* drop the comments of a MIME header value with the stripComments option ([2c36976](https://github.com/nodemailer/libmime/commit/2c369764904ec1e41535fc010d3b048e605330e3))
+* keep the first value of a duplicated parameter ([c6f9df5](https://github.com/nodemailer/libmime/commit/c6f9df58312ff40a551abc5522a11bac1841a6cf))
+
 ## [5.6.0](https://github.com/nodemailer/libmime/compare/v5.5.2...v5.6.0) (2026-10-21)
 
 
