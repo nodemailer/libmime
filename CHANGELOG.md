@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.6.3](https://github.com/nodemailer/libmime/compare/v5.6.2...v5.6.3) (2026-10-22)
+
+
+### Bug Fixes
+
+* drop what follows a closed quoted string up to the next parameter ([d2324b8](https://github.com/nodemailer/libmime/commit/d2324b8146896c580308a9d81fa539198b963850))
+
 ## [5.6.2](https://github.com/nodemailer/libmime/compare/v5.6.1...v5.6.2) (2026-10-22)
 
 
