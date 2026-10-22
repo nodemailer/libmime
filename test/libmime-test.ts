@@ -573,7 +573,7 @@ describe('libmime', () => {
                 value: 'multipart/mixed',
                 params: { boundary: 'b' }
             });
-            assert.deepStrictEqual(stripped('(c) text/plain (c); (c) charset=(c)utf-8 (a (nested) c)'), {
+            assert.deepStrictEqual(stripped('(c) text/plain (c); (c) charset= (c)utf-8 (a (nested) c)'), {
                 value: 'text/plain',
                 params: { charset: 'utf-8' }
             });
@@ -601,7 +601,12 @@ describe('libmime', () => {
                 params: { boundary: 'b' }
             });
             assert.deepStrictEqual(stripped('multipart/mixed; boundary="b"(c)').params, { boundary: 'b' });
-            assert.deepStrictEqual(stripped('multipart/mixed; boundary=(c)"b"').params, { boundary: 'b' });
+            // right behind the "=" a "(" continues the token as well: a sender who writes
+            // `--(c)b` delimiter lines has the parts found where Python and postal-mime find
+            // them, instead of hidden under a boundary of `b` that no line matches
+            assert.deepStrictEqual(stripped('multipart/mixed; boundary=(c)b').params, { boundary: '(c)b' });
+            assert.deepStrictEqual(stripped('multipart/mixed; boundary=(c)"b"').params, { boundary: '(c)b' });
+            assert.deepStrictEqual(stripped('multipart/mixed; boundary= (c)b').params, { boundary: 'b' });
             assert.deepStrictEqual(stripped('attachment; filename=a\\(b(c)').params, { filename: 'a(b(c)' });
         });
 
@@ -616,9 +621,15 @@ describe('libmime', () => {
                 value: 'text/plain (c',
                 params: { charset: 'utf-8' }
             });
+            // right behind the "=" the parenthesis is content either way, and the comment at
+            // the end runs to the end
             assert.deepStrictEqual(stripped('text/plain; x=(a; boundary=b (c'), {
                 value: 'text/plain',
-                params: { x: '(a', boundary: 'b (c' }
+                params: { x: '(a', boundary: 'b' }
+            });
+            assert.deepStrictEqual(stripped('text/plain; x=a (b; boundary=c (d'), {
+                value: 'text/plain',
+                params: { x: 'a (b', boundary: 'c (d' }
             });
         });
 

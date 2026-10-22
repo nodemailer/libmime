@@ -41,8 +41,9 @@ export interface ParseHeaderValueOptions {
     /**
      * Drop the RFC 822 comments outside quoted strings. The MIME headers (Content-Type,
      * Content-Disposition) allow them and they are not part of the value, so `boundary=b (comment)`
-     * names the boundary `b`. A parenthesis right behind a token of a parameter value continues
-     * it, `filename=Invoice(1).pdf` keeps its name. A comment that never closes runs to the end
+     * names the boundary `b`. A parenthesis right behind the `=` of a parameter or behind a token
+     * of its value continues the token, as it does for Python and postal-mime: `filename=Invoice(1).pdf`
+     * keeps its name and `boundary=(c)b` names the boundary `(c)b`. A comment that never closes runs to the end
      * of the value, unless a parameter follows it, in which case it is content and the parameter
      * survives. By default comments are kept as they are, since a header such as
      * Authentication-Results carries information in them

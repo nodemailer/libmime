@@ -664,10 +664,11 @@ export class Libmime {
         let escaped = false;
         let chr: string;
 
-        // Whether the last character read belongs to an unquoted token of a parameter value,
-        // which a "(" continues: `filename=Invoice(1).pdf` names the file. Anywhere else, in
-        // the type, in a parameter name or behind a quoted string, a "(" opens a comment, as
-        // it does for Python and postal-mime
+        // Whether a "(" would continue the unquoted token of a parameter value, which it does
+        // right behind the "=" and behind a character of the token: `filename=Invoice(1).pdf`
+        // names the file and `boundary=(c)b` the boundary `(c)b`, as they do for Python and
+        // postal-mime. Anywhere else, in the type, in a parameter name, behind whitespace or
+        // behind a quoted string, a "(" opens a comment
         let tokenOpen = false;
 
         // Stores the collected value, either as the default value, as the value for the
@@ -729,6 +730,7 @@ export class Libmime {
                         value = '';
                         valueEnd = 0;
                         stage = STAGE_VALUE;
+                        tokenOpen = true;
                     } else if (chr === ';') {
                         // key without a value, eg. the "inline" in "attachment; inline; filename=a.txt"
                         commit();
