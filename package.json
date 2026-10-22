@@ -1,7 +1,7 @@
 {
     "name": "libmime",
     "description": "Encode and decode quoted printable and base64 strings",
-    "version": "5.6.0",
+    "version": "5.6.1",
     "type": "module",
     "main": "./dist/cjs/libmime.js",
     "types": "./dist/cjs/libmime.d.ts",
