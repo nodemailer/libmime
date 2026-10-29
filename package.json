@@ -75,7 +75,7 @@
         "eslint": "10.13.0",
         "eslint-config-prettier": "10.1.8",
         "globals": "17.13.0",
-        "nodemailer": "10.3.0",
+        "nodemailer": "10.3.1",
         "prettier": "3.9.10",
         "tsx": "4.23.15",
         "typescript": "6.0.3",
