@@ -4,7 +4,6 @@ import type { TransformCallback } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import iconv from 'iconv-lite';
 import encodingJapanese from 'encoding-japanese';
-import type { Encoding } from 'encoding-japanese';
 import charsets from './charsets.js';
 
 /**
@@ -76,7 +75,7 @@ export function decode(buf: Buffer | string, fromCharset?: string): string {
             try {
                 let output = encodingJapanese.convert(buf, {
                     to: 'UNICODE',
-                    from: fromCharset as Encoding,
+                    from: fromCharset,
                     type: 'string'
                 });
                 if (typeof output === 'string') {
