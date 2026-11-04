@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.6.4](https://github.com/nodemailer/libmime/compare/v5.6.3...v5.6.4) (2026-11-04)
+
+
+### Bug Fixes
+
+* update dependencies ([a87ef77](https://github.com/nodemailer/libmime/commit/a87ef777652d816aaa6d98f47a9f945f59609e1f))
+
 ## [5.6.3](https://github.com/nodemailer/libmime/compare/v5.6.2...v5.6.3) (2026-10-22)
 
 
