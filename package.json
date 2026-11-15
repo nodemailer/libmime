@@ -67,7 +67,7 @@
         "encoding-japanese": "2.5.0",
         "iconv-lite": "0.7.3",
         "libbase64": "1.4.1",
-        "libqp": "3.0.1"
+        "libqp": "3.0.2"
     },
     "devDependencies": {
         "@types/node": "20.19.43",
@@ -75,7 +75,7 @@
         "eslint": "10.15.0",
         "eslint-config-prettier": "10.1.8",
         "globals": "17.14.0",
-        "nodemailer": "10.5.0",
+        "nodemailer": "10.6.0",
         "prettier": "3.10.1",
         "tsx": "4.23.15",
         "typescript": "6.0.3",
